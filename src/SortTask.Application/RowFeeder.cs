@@ -1,0 +1,49 @@
+using SortTask.Domain;
+
+namespace SortTask.Application;
+
+public class RowFeeder(
+    Stream targetStream,
+    long estimatedSize,
+    IRowReadWriter rowWriter,
+    IRowGenerator rowGenerator,
+    IProgressRenderer progressRenderer
+)
+{
+    public async Task Execute(CancellationToken cancellationToken)
+    {
+        const int flushPeriod = 10000;
+
+        try
+        {
+            var writtenRows = 0;
+            while (true)
+            {
+                var rows = rowGenerator.Generate();
+                foreach (var row in rows)
+                {
+                    await rowWriter.Write(row);
+
+                    writtenRows++;
+                    if (writtenRows % flushPeriod != 0) continue;
+
+                    await rowWriter.Flush(cancellationToken);
+
+                    var progress = Math.Min(100 * targetStream.Position / (double)estimatedSize, 100);
+                    progressRenderer.Render((int)progress);
+                }
+
+                if (targetStream.Position >= estimatedSize)
+                {
+                    break;
+                }
+            }
+
+            await rowWriter.Flush(cancellationToken);
+        }
+        finally
+        {
+            progressRenderer.Clear();
+        }
+    }
+}

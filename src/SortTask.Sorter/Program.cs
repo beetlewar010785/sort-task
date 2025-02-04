@@ -1,3 +1,17 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using SortTask.Sorter;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
-Console.WriteLine("Hello, World!");
+var app = new CommandApp<FileCommand>();
+app.Configure(config =>
+{
+    config.SetApplicationName("SortTask.TestFileCreator");
+    config.PropagateExceptions();
+    config.SetExceptionHandler((ex, _) =>
+    {
+        AnsiConsole.MarkupLine("[red]An error occurred:[/] " + ex.Message);
+        return 1;
+    });
+});
+
+return app.Run(args);

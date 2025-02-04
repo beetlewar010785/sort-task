@@ -1,6 +1,8 @@
+using SortTask.Domain;
+
 namespace SortTask.Adapter;
 
-public class ConsoleProgressRenderer
+public class ConsoleProgressRenderer : IProgressRenderer
 {
     private string? _lastRenderedString;
 
