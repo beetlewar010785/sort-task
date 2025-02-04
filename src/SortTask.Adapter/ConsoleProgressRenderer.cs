@@ -1,6 +1,6 @@
-namespace SortTask.TestFileCreator;
+namespace SortTask.Adapter;
 
-public class ProgressRenderer
+public class ConsoleProgressRenderer
 {
     private string? _lastRenderedString;
 

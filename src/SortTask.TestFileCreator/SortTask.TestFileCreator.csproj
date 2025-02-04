@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\SortTask.Adapter\SortTask.Adapter.csproj" />
       <ProjectReference Include="..\SortTask.Domain\SortTask.Domain.csproj" />
     </ItemGroup>
 

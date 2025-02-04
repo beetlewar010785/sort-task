@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using SortTask.Adapter;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -28,9 +29,11 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
+        const string usageMessage = "Usage: file-creator -f <file> -s <size>"; // TODO: fix file-creator app name
+
         if (settings.ShowHelp)
         {
-            AnsiConsole.WriteLine("Usage: FileCreator -f <file> -s <size>");
+            AnsiConsole.WriteLine(usageMessage);
             AnsiConsole.WriteLine("Options:");
             AnsiConsole.WriteLine("  -f, --file   Path to the file");
             AnsiConsole.WriteLine("  -s, --size   File size in bytes");
@@ -38,16 +41,15 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
             return 0;
         }
 
-        const string helpSuffix = "Run application with argument --help.";
         if (string.IsNullOrEmpty(settings.FilePath))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] File path is required. {helpSuffix}");
+            AnsiConsole.MarkupLine($"[red]Error:[/] File path is required. {usageMessage}");
             return 1;
         }
 
         if (settings.FileSize <= 0)
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] Valid file size is required. {helpSuffix}");
+            AnsiConsole.MarkupLine($"[red]Error:[/] Valid file size is required. {usageMessage}");
             return 1;
         }
 
@@ -57,7 +59,7 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
         var sw = new Stopwatch();
         sw.Start();
 
-        var fileCreator = new FileCreator(settings.FilePath, settings.FileSize);
+        var fileCreator = new FeedRowCommand(settings.FilePath, settings.FileSize);
         await fileCreator.Execute(CancellationToken.None); // todo fix none
 
         sw.Stop();
