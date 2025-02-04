@@ -2,15 +2,14 @@ using SortTask.Domain;
 
 namespace SortTask.Application;
 
-public class RowFeeder(
+public class FeedRowCommand(
     Stream targetStream,
-    long estimatedSize,
     IRowReadWriter rowWriter,
     IRowGenerator rowGenerator,
     IProgressRenderer progressRenderer
 )
 {
-    public async Task Execute(CancellationToken cancellationToken)
+    public async Task Execute(long estimatedSize, CancellationToken cancellationToken)
     {
         const int flushPeriod = 10000;
 

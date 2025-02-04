@@ -2,14 +2,13 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class ConsoleProgressRenderer : IProgressRenderer
+public class ConsoleProgressRenderer(int barWidth) : IProgressRenderer
 {
     private string? _lastRenderedString;
 
     public void Render(int percent)
     {
-        const int barWidth = 50;
-        const int halfBarWidth = barWidth / 2;
+        var halfBarWidth = barWidth / 2;
         const char progressSymbol = '■';
 
         if (percent is < 0 or > 100)

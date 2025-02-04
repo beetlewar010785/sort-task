@@ -1,7 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Loader;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using SortTask.Adapter;
+using SortTask.Application;
+using SortTask.Domain;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -53,18 +58,69 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
             return 1;
         }
 
+        var cts = new CancellationTokenSource();
+        AssemblyLoadContext.Default.Unloading += _ => { cts.Cancel(); };
+
+        Console.CancelKeyPress += (_, eventArgs) =>
+        {
+            cts.Cancel();
+            eventArgs.Cancel = true;
+        };
+
         AnsiConsole.MarkupLine($"[green]Processing file:[/] {settings.FilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]File size:[/] {settings.FileSize} bytes");
+
+        var sc = BuildServiceCollection(settings.FilePath);
+        await using var serviceProvider = sc.BuildServiceProvider();
 
         var sw = new Stopwatch();
         sw.Start();
 
-        var fileCreator = new FeedRowCommand(settings.FilePath, settings.FileSize);
-        await fileCreator.Execute(CancellationToken.None); // todo fix none
+        try
+        {
+            var fileRowFeeder = serviceProvider.GetRequiredService<FeedRowCommand>();
+            await fileRowFeeder.Execute(settings.FileSize, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
+            return 1;
+        }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
         return 0;
+    }
+
+    private static ServiceCollection BuildServiceCollection(string filePath)
+    {
+        const int maxRowNumber = 100_000;
+        const int maxWordsInSentence = 5;
+        const int repeatRowPeriod = 10;
+        const int maxRepeatNumber = 1;
+        const int refreshRepeatingRowsPeriod = 2;
+        const int progressBarWidth = 50;
+
+        var sc = new ServiceCollection();
+        sc.AddSingleton<Stream>(_ => File.Create(filePath))
+            .AddSingleton<Encoding>(_ => Encoding.UTF8)
+            .AddSingleton<IRowReadWriter, RowReadWriter>()
+            .AddSingleton<Random>()
+            .AddSingleton<RandomRowGenerator>(
+                sp => new RandomRowGenerator(
+                    sp.GetRequiredService<Random>(),
+                    maxRowNumber: maxRowNumber,
+                    maxWordsInSentence: maxWordsInSentence))
+            .AddSingleton<IRowGenerator>(sp =>
+                new RowGenerationRepeater(sp.GetRequiredService<RandomRowGenerator>(),
+                    sp.GetRequiredService<Random>(),
+                    repeatPeriod: repeatRowPeriod,
+                    maxRepeatNumber: maxRepeatNumber,
+                    refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod))
+            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(progressBarWidth))
+            .AddSingleton<FeedRowCommand>();
+
+        return sc;
     }
 }
