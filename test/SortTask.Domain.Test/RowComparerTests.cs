@@ -3,7 +3,7 @@ namespace SortTask.Domain.Test;
 public class RowComparerTests
 {
     [TestCaseSource(nameof(GetRowCases))]
-    public int Should_Compare_Rows(Row row1, Row row2)
+    public int Should_Compare_Rows(IRow row1, IRow row2)
     {
         var sut = new RowComparer();
         return sut.Compare(row1, row2);
@@ -36,4 +36,6 @@ public class RowComparerTests
                 new Row(1, "a"))
             .Returns(0);
     }
+
+    private record Row(int Number, string Sentence) : IRow;
 }

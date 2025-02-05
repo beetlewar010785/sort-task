@@ -1,6 +1,8 @@
 namespace SortTask.Domain.BTree;
 
-public interface IBTreeIndexFactory<out TIndex> where TIndex : IBTreeIndex
+public interface IBTreeIndexFactory<out TIndex, in TRow>
+    where TIndex : IBTreeIndex
+    where TRow : IRow
 {
-    public TIndex CreateIndex(RowIndexKey key);
+    public TIndex CreateIndexFromRow(TRow row);
 }

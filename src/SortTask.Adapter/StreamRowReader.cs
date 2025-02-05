@@ -3,13 +3,11 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader<ReadRow>
+public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader<StreamReadRow>
 {
-    private readonly StreamReader _streamReader = new StreamReader(stream, encoding, leaveOpen: true);
-
-    public async IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable()
+    public async IAsyncEnumerable<StreamReadRow> ReadAsAsyncEnumerable()
     {
-        using var reader = new StreamReader(stream);
+        using var reader = new StreamReader(stream, encoding, leaveOpen: true);
         while (await reader.ReadLineAsync() is { } rowString)
         {
             var row = DeserializeRow(rowString);
@@ -17,22 +15,12 @@ public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader<Read
         }
     }
 
-    public Task Flush(CancellationToken cancellationToken)
+    private static StreamReadRow DeserializeRow(string serializedRow)
     {
-        return _streamRowWriter.FlushAsync(cancellationToken);
-    }
-
-    private static string SerializeRow(WriteRow row)
-    {
-        return $"{row.Number}{RowFieldsSplitter}{row.Sentence}";
-    }
-
-    private static ReadRow DeserializeRow(string serializedRow)
-    {
-        var splitterIndex = serializedRow.IndexOf(RowFieldsSplitter, StringComparison.Ordinal);
-        return new ReadRow(
+        var splitterIndex = serializedRow.IndexOf(Const.RowFieldsSplitter, StringComparison.Ordinal);
+        return new StreamReadRow(
             int.Parse(serializedRow[..splitterIndex]),
-            serializedRow[(splitterIndex + RowFieldsSplitter.Length)..]
+            serializedRow[(splitterIndex + Const.RowFieldsSplitter.Length)..]
         );
     }
 }

@@ -1,9 +1,9 @@
 namespace SortTask.Domain.BTree.Memory;
 
-public class MemoryBTreeIndexFactory : IBTreeIndexFactory<MemoryBTreeIndex>
+public class MemoryBTreeIndexFactory : IBTreeIndexFactory<MemoryBTreeIndex, MemoryBTreeRow>
 {
-    public MemoryBTreeIndex CreateIndex(RowIndexKey key)
+    public MemoryBTreeIndex CreateIndexFromRow(MemoryBTreeRow row)
     {
-        return new MemoryBTreeIndex(key);
+        return new MemoryBTreeIndex(row);
     }
 }

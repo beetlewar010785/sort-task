@@ -1,6 +1,7 @@
 namespace SortTask.Domain;
 
-public interface IRowIndexer
+public interface IRowIndexer<in TRow>
+    where TRow : IRow
 {
-    Task IndexRow(Row row);
+    Task IndexRow(TRow row);
 }

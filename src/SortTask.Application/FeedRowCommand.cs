@@ -5,7 +5,7 @@ namespace SortTask.Application;
 
 public class FeedRowCommand(
     Stream targetStream,
-    IRowReadWriter rowWriter,
+    IRowWriter<GeneratingRow> rowWriter,
     IRowGenerator rowGenerator,
     IProgressRenderer progressRenderer
 )

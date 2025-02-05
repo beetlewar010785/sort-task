@@ -1,16 +1,16 @@
 namespace SortTask.Domain.BTree;
 
-public class BTreeRowIndexer<TNode, TIndex, TNodeId>(
+public class BTreeRowIndexer<TNode, TIndex, TNodeId, TRow>(
     IBTreeReadWriter<TNode, TIndex, TNodeId> readWriter,
     IBTreeNodeFactory<TNode, TIndex, TNodeId> nodeFactory,
-    IBTreeIndexFactory<TIndex> indexFactory,
-    BTreeOrder order,
-    IComparer<RowIndexKey> rowIndexKeyComparer
-) : IRowIndexer
+    IBTreeIndexFactory<TIndex, TRow> indexFactory,
+    BTreeOrder order
+) : IRowIndexer<TRow>
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IBTreeIndex
+    where TRow : IRow
 {
-    public async Task IndexRow(Row row)
+    public async Task IndexRow(TRow row)
     {
         var root = await readWriter.GetRoot();
         if (root == null)
@@ -21,8 +21,7 @@ public class BTreeRowIndexer<TNode, TIndex, TNodeId>(
             await readWriter.SetRoot(root.Id);
         }
 
-        var key = RowIndexKey.FromRow(row);
-        var index = indexFactory.CreateIndex(key);
+        var index = indexFactory.CreateIndexFromRow(row);
         var targetNode = await FindTargetNode(index, root);
         await InsertIndex(index, targetNode);
     }

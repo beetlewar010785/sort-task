@@ -1,8 +1,8 @@
 namespace SortTask.Domain;
 
-public class RowComparer : IComparer<Row>
+public class RowComparer : IComparer<IRow>
 {
-    public int Compare(Row? x, Row? y)
+    public int Compare(IRow? x, IRow? y)
     {
         switch (x)
         {

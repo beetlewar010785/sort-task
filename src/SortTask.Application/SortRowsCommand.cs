@@ -2,7 +2,8 @@ using SortTask.Domain;
 
 namespace SortTask.Application;
 
-public class SortRowsCommand(IRowReadWriter rowReadWriter, IRowIndexer rowIndexer)
+public class SortRowsCommand<TRow>(IRowReader<TRow> rowReadWriter, IRowIndexer<TRow> rowIndexer)
+    where TRow : IRow
 {
     public async Task Execute(CancellationToken cancellationToken)
     {

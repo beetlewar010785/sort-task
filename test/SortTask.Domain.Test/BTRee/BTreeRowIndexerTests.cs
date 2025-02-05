@@ -11,35 +11,22 @@ public class BTreeRowIndexerTests
         var readWriter = new MemoryBTreeReadWriter();
         var rows = new[]
         {
-            new Row(10, "good news"),
-            new Row(11, "bad news"),
-            new Row(5, "alcohol is bad"),
-            new Row(72, "collaboration is good"),
-            new Row(12, "collaboration is good")
+            new MemoryBTreeRow(10, "good news"),
+            new MemoryBTreeRow(11, "bad news"),
+            new MemoryBTreeRow(5, "alcohol is bad"),
+            new MemoryBTreeRow(72, "collaboration is good"),
+            new MemoryBTreeRow(12, "collaboration is good")
         };
 
-        var expectedRows = new List<Row>(rows);
-        expectedRows.Sort(new RowComparer());
-
-        var sut = new BTreeRowIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(
+        var sut = new BTreeRowIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId, MemoryBTreeRow>(
             readWriter,
             new MemoryBTreeNodeFactory(),
             new MemoryBTreeIndexFactory(),
-            new BTreeOrder(1),
-            new RowIndexKeyComparer()
+            new BTreeOrder(1)
         );
         foreach (var row in rows)
         {
             await sut.IndexRow(row);
         }
-
-        var a = 3;
     }
-
-    // private static IEnumerable<BTreeIndex> CollectIndexes(BTreeNode node)
-    // {
-    //     for (var i = 0; i < node.Indexes.Count; i++)
-    //     {
-    //     }
-    // }
 }

@@ -12,7 +12,7 @@ public class BTreeNodeCollection<TNodeId>(List<TNodeId> nodes) : IEnumerable<TNo
     {
         var index = nodes.IndexOf(after);
         var newNodes = new List<TNodeId>(nodes);
-        newNodes.Insert(index, inserting);
+        newNodes.Insert(index + 1, inserting);
         return new BTreeNodeCollection<TNodeId>(newNodes);
     }
 

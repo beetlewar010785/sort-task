@@ -68,7 +68,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            var fileRowFeeder = serviceProvider.GetRequiredService<SortRowsCommand>();
+            var fileRowFeeder = serviceProvider.GetRequiredService<SortRowsCommand<StreamReadRow>>();
             await fileRowFeeder.Execute(cts.Token);
         }
         catch (OperationCanceledException)
@@ -91,9 +91,8 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         sc.AddSingleton<Stream>(_ => File.OpenRead(filePath))
             .AddSingleton<Encoding>(_ => Encoding.UTF8)
             .AddSingleton(_ => new BTreeOrder(bTreeOrder))
-            .AddSingleton<IRowReadWriter, StreamRowReadWriter>()
-            //.AddSingleton<IRowIndexer, BTreeRowIndexer<StreamBTreeIndex>>()
-            .AddSingleton<SortRowsCommand>();
+            .AddSingleton<IRowReader<StreamReadRow>, StreamRowReader>()
+            .AddSingleton<SortRowsCommand<StreamReadRow>>();
 
         return sc;
     }

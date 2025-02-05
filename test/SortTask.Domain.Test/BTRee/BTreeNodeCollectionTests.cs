@@ -4,13 +4,21 @@ namespace SortTask.Domain.Test.BTRee;
 
 public class BTreeNodeCollectionTests
 {
-    [Test]
-    public void Should_Insert_After_Specified_Node()
+    [TestCaseSource(nameof(SortTestCases))]
+    public BTreeNodeCollection<int> Should_Insert_After_Specified_Node(
+        BTreeNodeCollection<int> input,
+        int insertingValue,
+        int insertAfter)
     {
-        var initial = new BTreeNodeCollection<int>([1, 2, 3, 4]);
-        var actual = initial.InsertAfter(inserting: 5, after: 2);
-        var expected = new BTreeNodeCollection<int>([1, 2, 5, 3, 4]);
+        return input.InsertAfter(inserting: insertingValue, after: insertAfter);
+    }
 
-        Assert.That(actual, Is.EqualTo(expected));
+    private static IEnumerable<TestCaseData> SortTestCases()
+    {
+        yield return new TestCaseData(new BTreeNodeCollection<int>([1, 2, 3, 4]), 5, 2)
+            .Returns(new BTreeNodeCollection<int>([1, 2, 5, 3, 4]));
+
+        yield return new TestCaseData(new BTreeNodeCollection<int>([1, 2]), 3, 2)
+            .Returns(new BTreeNodeCollection<int>([1, 2, 3]));
     }
 }
