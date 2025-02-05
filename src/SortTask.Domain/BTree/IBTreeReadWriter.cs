@@ -2,7 +2,7 @@ namespace SortTask.Domain.BTree;
 
 public interface IBTreeReadWriter<TNode, TIndex, TNodeId>
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
-    where TIndex : IBTreeIndex
+    where TIndex : IIndex
 {
     Task<TNodeId> AllocateId();
     Task<TNode?> GetRoot();

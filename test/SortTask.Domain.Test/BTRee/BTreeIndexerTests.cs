@@ -3,7 +3,7 @@ using SortTask.Domain.BTree.Memory;
 
 namespace SortTask.Domain.Test.BTRee;
 
-public class BTreeRowIndexerTests
+public class BTreeIndexerTests
 {
     [Test]
     public async Task Should_Build_Index()
@@ -18,15 +18,19 @@ public class BTreeRowIndexerTests
             new MemoryBTreeRow(12, "collaboration is good")
         };
 
-        var sut = new BTreeRowIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId, MemoryBTreeRow>(
+        var rowComparer = new RowComparer();
+        var indexComparer = new MemoryBTreeIndexComparer(rowComparer);
+
+        var sut = new BTreeIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(
             readWriter,
             new MemoryBTreeNodeFactory(),
-            new MemoryBTreeIndexFactory(),
+            indexComparer,
             new BTreeOrder(1)
         );
+
         foreach (var row in rows)
         {
-            await sut.IndexRow(row);
+            await sut.Index(new MemoryBTreeIndex(row));
         }
     }
 }

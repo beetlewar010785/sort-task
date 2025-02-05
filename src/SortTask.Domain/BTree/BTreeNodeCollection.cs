@@ -6,14 +6,15 @@ public class BTreeNodeCollection<TNodeId>(List<TNodeId> nodes) : IEnumerable<TNo
 {
     public int Count => nodes.Count;
 
+    public TNodeId this[int index] => nodes[index];
+
     public static BTreeNodeCollection<TNodeId> Empty => new([]);
 
     public BTreeNodeCollection<TNodeId> InsertAfter(TNodeId inserting, TNodeId after)
     {
-        var index = nodes.IndexOf(after);
-        var newNodes = new List<TNodeId>(nodes);
-        newNodes.Insert(index + 1, inserting);
-        return new BTreeNodeCollection<TNodeId>(newNodes);
+        var position = nodes.IndexOf(after);
+        nodes.Insert(position + 1, inserting);
+        return this;
     }
 
     public IEnumerator<TNodeId> GetEnumerator()

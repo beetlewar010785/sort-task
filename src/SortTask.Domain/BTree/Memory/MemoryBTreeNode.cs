@@ -4,13 +4,13 @@ public class MemoryBTreeNode(
     MemoryBTreeNodeId id,
     MemoryBTreeNodeId? parentId,
     BTreeNodeCollection<MemoryBTreeNodeId> children,
-    List<MemoryBTreeIndex> indexes
+    BTreeIndexCollection<MemoryBTreeIndex> indexes
 ) : IBTreeNode<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>
 {
     public MemoryBTreeNodeId Id { get; } = id;
     public MemoryBTreeNodeId? ParentId { get; } = parentId;
     public BTreeNodeCollection<MemoryBTreeNodeId> Children => children;
-    public IReadOnlyList<MemoryBTreeIndex> Indexes => indexes;
+    public BTreeIndexCollection<MemoryBTreeIndex> Indices => indexes;
 
     public override string ToString()
     {

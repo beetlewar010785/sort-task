@@ -7,14 +7,14 @@ public class MemoryBTreeNodeFactory
         MemoryBTreeNodeId id,
         MemoryBTreeNodeId? parentId,
         BTreeNodeCollection<MemoryBTreeNodeId> children,
-        IEnumerable<MemoryBTreeIndex> indexes
+        BTreeIndexCollection<MemoryBTreeIndex> indices
     )
     {
         return new MemoryBTreeNode(
             id,
             parentId,
             children,
-            indexes.ToList()
+            indices
         );
     }
 }
