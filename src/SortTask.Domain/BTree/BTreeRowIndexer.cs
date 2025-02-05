@@ -1,5 +1,5 @@
 namespace SortTask.Domain.BTree;
 
-public class BTreeIndex
+public class BTreeRowIndexer
 {
 }

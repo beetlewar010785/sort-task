@@ -13,7 +13,7 @@ using Spectre.Console.Cli;
 namespace SortTask.TestFileCreator;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class FileCommand : AsyncCommand<FileCommand.Settings>
+public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings>
 {
     // ReSharper disable once ClassNeverInstantiated.Global
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
@@ -58,15 +58,6 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
             return 1;
         }
 
-        var cts = new CancellationTokenSource();
-        AssemblyLoadContext.Default.Unloading += _ => { cts.Cancel(); };
-
-        Console.CancelKeyPress += (_, eventArgs) =>
-        {
-            cts.Cancel();
-            eventArgs.Cancel = true;
-        };
-
         AnsiConsole.MarkupLine($"[green]Processing file:[/] {settings.FilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]File size:[/] {settings.FileSize} bytes");
 
@@ -78,6 +69,15 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
 
         try
         {
+            var cts = new CancellationTokenSource();
+            AssemblyLoadContext.Default.Unloading += _ => { cts.Cancel(); };
+
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                cts.Cancel();
+                eventArgs.Cancel = true;
+            };
+
             var fileRowFeeder = serviceProvider.GetRequiredService<FeedRowCommand>();
             await fileRowFeeder.Execute(settings.FileSize, cts.Token);
         }

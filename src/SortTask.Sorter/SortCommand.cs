@@ -1,13 +1,20 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Loader;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using SortTask.Adapter;
+using SortTask.Application;
+using SortTask.Domain;
+using SortTask.Domain.BTree;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace SortTask.Sorter;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class FileCommand : AsyncCommand<FileCommand.Settings>
+public class SortCommand : AsyncCommand<SortCommand.Settings>
 {
     // ReSharper disable once ClassNeverInstantiated.Global
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
@@ -25,6 +32,7 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage = "Usage: sorter -f <file>"; // TODO: fix sorter app name
+        const int bTreeOrder = 1;
 
         if (settings.ShowHelp)
         {
@@ -43,16 +51,50 @@ public class FileCommand : AsyncCommand<FileCommand.Settings>
 
         AnsiConsole.MarkupLine($"[green]Processing file:[/] {settings.FilePath.EscapeMarkup()}");
 
+        var sc = BuildServiceCollection(settings.FilePath, bTreeOrder);
+        await using var serviceProvider = sc.BuildServiceProvider();
+
         var sw = new Stopwatch();
         sw.Start();
 
-        var fileSorter = new FileSorter(settings.FilePath);
-        await fileSorter.Sort(CancellationToken.None);
+        try
+        {
+            var cts = new CancellationTokenSource();
+            AssemblyLoadContext.Default.Unloading += _ => { cts.Cancel(); };
+
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                cts.Cancel();
+                eventArgs.Cancel = true;
+            };
+
+            var fileRowFeeder = serviceProvider.GetRequiredService<SortRowsCommand>();
+            await fileRowFeeder.Execute(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
+            return 1;
+        }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
 
         return 0;
+    }
+
+    private static ServiceCollection BuildServiceCollection(string filePath, int bTreeOrder)
+    {
+        var sc = new ServiceCollection();
+
+        sc.AddSingleton<Stream>(_ => File.OpenRead(filePath))
+            .AddSingleton<Encoding>(_ => Encoding.UTF8)
+            .AddSingleton(_ => new BTreeOrder(bTreeOrder))
+            .AddSingleton<IRowReadWriter, StreamRowReadWriter>()
+            //.AddSingleton<IRowIndexer, BTreeRowIndexer<StreamBTreeIndex>>()
+            .AddSingleton<SortRowsCommand>();
+
+        return sc;
     }
 }

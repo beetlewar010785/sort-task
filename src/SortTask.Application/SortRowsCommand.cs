@@ -1,6 +1,6 @@
 namespace SortTask.Application;
 
-public class RowSorter
+public class SortRowsCommand
 {
     
 }
