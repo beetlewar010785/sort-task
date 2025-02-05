@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SortTask.Adapter;
 using SortTask.Application;
 using SortTask.Domain;
+using SortTask.Domain.RowGeneration;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -105,7 +106,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
         var sc = new ServiceCollection();
         sc.AddSingleton<Stream>(_ => File.Create(filePath))
             .AddSingleton<Encoding>(_ => Encoding.UTF8)
-            .AddSingleton<IRowReadWriter, RowReadWriter>()
+            .AddSingleton<IRowReadWriter, StreamRowReadWriter>()
             .AddSingleton<Random>()
             .AddSingleton<RandomRowGenerator>(
                 sp => new RandomRowGenerator(

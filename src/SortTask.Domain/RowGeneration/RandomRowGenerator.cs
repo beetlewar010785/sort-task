@@ -1,6 +1,6 @@
 using Bogus;
 
-namespace SortTask.Domain;
+namespace SortTask.Domain.RowGeneration;
 
 public class RandomRowGenerator(
     Random rnd,

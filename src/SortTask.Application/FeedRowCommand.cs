@@ -1,4 +1,5 @@
 using SortTask.Domain;
+using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Application;
 

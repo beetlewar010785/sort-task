@@ -1,4 +1,4 @@
-namespace SortTask.Domain;
+namespace SortTask.Domain.RowGeneration;
 
 public class RowGenerationRepeater(
     IRowGenerator inner,
