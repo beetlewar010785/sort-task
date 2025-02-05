@@ -106,7 +106,6 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
         var sc = new ServiceCollection();
         sc.AddSingleton<Stream>(_ => File.Create(filePath))
             .AddSingleton<Encoding>(_ => Encoding.UTF8)
-            .AddSingleton<IRowReadWriter, StreamRowReadWriter>()
             .AddSingleton<Random>()
             .AddSingleton<RandomRowGenerator>(
                 sp => new RandomRowGenerator(
@@ -114,12 +113,14 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                     maxRowNumber: maxRowNumber,
                     maxWordsInSentence: maxWordsInSentence))
             .AddSingleton<IRowGenerator>(sp =>
-                new RowGenerationRepeater(sp.GetRequiredService<RandomRowGenerator>(),
+                new RowGenerationRepeater(
+                    sp.GetRequiredService<RandomRowGenerator>(),
                     sp.GetRequiredService<Random>(),
                     repeatPeriod: repeatRowPeriod,
                     maxRepeatNumber: maxRepeatNumber,
                     refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod))
             .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(progressBarWidth))
+            .AddSingleton<IRowWriter<GeneratingRow>, StreamRowWriter>()
             .AddSingleton<FeedRowCommand>();
 
         return sc;
