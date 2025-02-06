@@ -1,8 +1,7 @@
 namespace SortTask.Domain;
 
-public interface IIndexFactory<out TIndex, in TRow>
+public interface IIndexFactory<out TIndex>
     where TIndex : IIndex
-    where TRow : IRow
 {
-    public TIndex CreateIndexFromRow(TRow row);
+    public TIndex CreateIndexFromRow(Row row);
 }

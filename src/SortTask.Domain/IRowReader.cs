@@ -1,7 +1,6 @@
 namespace SortTask.Domain;
 
-public interface IRowReader<out TRow>
-    where TRow : IRow
+public interface IRowReader
 {
-    IAsyncEnumerable<TRow> ReadAsAsyncEnumerable();
+    IAsyncEnumerable<Row> ReadAsAsyncEnumerable();
 }

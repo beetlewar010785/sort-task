@@ -79,6 +79,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                 eventArgs.Cancel = true;
             };
 
+            // todo get required interface no class
             var fileRowFeeder = serviceProvider.GetRequiredService<FeedRowCommand>();
             await fileRowFeeder.Execute(settings.FileSize, cts.Token);
         }
@@ -120,7 +121,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                     maxRepeatNumber: maxRepeatNumber,
                     refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod))
             .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(progressBarWidth))
-            .AddSingleton<IRowWriter<GeneratingRow>, StreamRowWriter>()
+            .AddSingleton<IRowWriter, StreamRowWriter>()
             .AddSingleton<FeedRowCommand>();
 
         return sc;

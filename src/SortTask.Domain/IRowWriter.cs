@@ -1,8 +1,7 @@
 namespace SortTask.Domain;
 
-public interface IRowWriter<in TRow>
-    where TRow : IRow
+public interface IRowWriter
 {
-    Task Write(TRow row);
+    Task Write(Row row);
     Task Flush(CancellationToken cancellationToken);
 }

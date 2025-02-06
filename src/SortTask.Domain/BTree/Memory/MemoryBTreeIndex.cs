@@ -1,11 +1,11 @@
 namespace SortTask.Domain.BTree.Memory;
 
-public class MemoryBTreeIndex(MemoryBTreeRow bTreeRow) : IIndex
+public class MemoryBTreeIndex(Row row) : IIndex
 {
-    public MemoryBTreeRow BTreeRow { get; } = bTreeRow;
+    public Row Row { get; } = row;
 
     public override string ToString()
     {
-        return BTreeRow.ToString();
+        return Row.ToString();
     }
 }

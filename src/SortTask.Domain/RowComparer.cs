@@ -1,8 +1,8 @@
 namespace SortTask.Domain;
 
-public class RowComparer : IComparer<IRow>
+public class RowComparer : IComparer<Row>
 {
-    public int Compare(IRow? x, IRow? y)
+    public int Compare(Row? x, Row? y)
     {
         ArgumentNullException.ThrowIfNull(x);
         ArgumentNullException.ThrowIfNull(y);

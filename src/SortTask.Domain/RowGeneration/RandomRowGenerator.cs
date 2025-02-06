@@ -10,11 +10,11 @@ public class RandomRowGenerator(
 {
     private readonly Faker _faker = new();
 
-    public IEnumerable<GeneratingRow> Generate()
+    public IEnumerable<Row> Generate()
     {
         var rowNumber = rnd.Next(1, maxRowNumber);
         var numWords = rnd.Next(1, maxWordsInSentence);
         var sentence = string.Join(" ", _faker.Random.Words(numWords));
-        yield return new GeneratingRow(rowNumber, sentence);
+        yield return new Row(rowNumber, sentence);
     }
 }

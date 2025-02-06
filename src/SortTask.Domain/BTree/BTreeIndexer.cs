@@ -1,7 +1,7 @@
 namespace SortTask.Domain.BTree;
 
 public class BTreeIndexer<TNode, TIndex, TNodeId>(
-    IBTreeReadWriter<TNode, TIndex, TNodeId> readWriter,
+    IBTreeStore<TNode, TIndex, TNodeId> store,
     IBTreeNodeFactory<TNode, TIndex, TNodeId> nodeFactory,
     IBTreeIndexComparer<TIndex> indexComparer,
     BTreeOrder order
@@ -11,17 +11,19 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
 {
     public async Task Index(TIndex index)
     {
-        var root = await readWriter.GetRoot();
+        var root = await store.GetRoot();
         if (root == null)
         {
-            var rootId = await readWriter.AllocateId();
-            root = nodeFactory.Create(rootId,
+            var rootId = await store.AllocateId();
+            root = nodeFactory.Create(
+                rootId,
                 default,
                 BTreeNodeCollection<TNodeId>.Empty,
-                BTreeIndexCollection<TIndex>.Empty
+                new BTreeIndexCollection<TIndex>([index])
             );
-            await readWriter.SaveNode(root);
-            await readWriter.SetRoot(root.Id);
+            await store.SaveNode(root);
+            await store.SetRoot(root.Id);
+            return;
         }
 
         var targetResult = await FindTarget(index, root);
@@ -36,13 +38,13 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             targetNode.Children,
             targetNode.Indices.InsertAt(position, index)
         );
-        await readWriter.SaveNode(targetNode);
+        await store.SaveNode(targetNode);
         await CheckOverflow(targetNode);
     }
 
     private async Task CheckOverflow(TNode node)
     {
-        if (!IsOverflowed(node))
+        if (!order.IsOverflowed(node.Indices.Count))
         {
             return;
         }
@@ -51,33 +53,34 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         TNode? parent = default;
         if (node.ParentId != null)
         {
-            parent = await readWriter.GetNode(node.ParentId);
+            parent = await store.GetNode(node.ParentId);
         }
 
         if (parent == null)
         {
             // if the node does not have parent, it means it is root
             // then we need to assign new root
-            var parentId = await readWriter.AllocateId();
+            var parentId = await store.AllocateId();
             parent = nodeFactory.Create(
                 parentId,
                 default,
                 new BTreeNodeCollection<TNodeId>([splitResult.Left, splitResult.Right]),
                 new BTreeIndexCollection<TIndex>([splitResult.PopupIndex])
             );
-            await readWriter.SaveNode(parent);
-            await readWriter.SetRoot(parent.Id);
+            await store.SaveNode(parent);
+            await store.SetRoot(parent.Id);
         }
         else
         {
             // when we have a parent, we add an index to the parent and created child node
+            var target = await FindTargetIn(splitResult.PopupIndex, parent);
             parent = nodeFactory.Create(
                 parent.Id,
                 parent.ParentId,
                 parent.Children.InsertAfter(inserting: splitResult.Right, after: node.Id),
-                parent.Indices.InsertAt(0, splitResult.PopupIndex) // todo
+                parent.Indices.InsertAt(target.Position, splitResult.PopupIndex)
             );
-            await readWriter.SaveNode(parent);
+            await store.SaveNode(parent);
         }
 
         // do not forget to save updated node and created one
@@ -87,7 +90,7 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             splitResult.LeftChildren,
             splitResult.LeftIndices
         );
-        await readWriter.SaveNode(leftNode);
+        await store.SaveNode(leftNode);
 
         var rightNode = nodeFactory.Create(
             splitResult.Right,
@@ -95,66 +98,68 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             splitResult.RightChildren,
             splitResult.RightIndices
         );
-        await readWriter.SaveNode(rightNode);
+        await store.SaveNode(rightNode);
 
         // repeat recursively until we reach the root or find a node that is not overflowed
         await CheckOverflow(parent);
     }
 
-    private bool IsOverflowed(TNode node)
-    {
-        return node.Indices.Count > order.Value * 2;
-    }
-
-    private async Task<FindTargetResult> FindTarget(TIndex index, TNode searchInNode)
+    private async Task<FindTargetResult> FindTarget(TIndex insertingIndex, TNode searchInNode)
     {
         if (searchInNode.Children.Count == 0)
         {
             // this is a leaf node, no need to search further
-            for (var i = 0; i < searchInNode.Indices.Count; i++)
-            {
-                var otherIndex = searchInNode.Indices[i];
-                var indexCompareResult = await indexComparer.Compare(index, otherIndex);
-                if (indexCompareResult <= 0)
-                {
-                    // our index is less than or equal to the other index, we found right place
-                    return new FindTargetResult(searchInNode, i);
-                }
-            }
-
-            // insert at the end
-            return new FindTargetResult(searchInNode, searchInNode.Indices.Count);
+            return await FindTargetIn(insertingIndex, searchInNode);
         }
 
+        // search child where our index which is greater than our index to drill down
         for (var i = 0; i < searchInNode.Indices.Count; i++)
         {
-            var otherIndex = searchInNode.Indices[i];
-            var indexCompareResult = await indexComparer.Compare(index, otherIndex);
+            var existingIndex = searchInNode.Indices[i];
+            var indexCompareResult = await indexComparer.Compare(insertingIndex, existingIndex);
             if (indexCompareResult <= 0)
             {
                 var nodeId = searchInNode.Children[i];
-                var node = await readWriter.GetNode(nodeId);
-                return await FindTarget(index, node);
+                var node = await store.GetNode(nodeId);
+                return await FindTarget(insertingIndex, node);
             }
         }
 
+        // our index is the greatest in the node, search in the rightmost child 
         var latestNodeId = searchInNode.Children[^1];
-        var latestNode = await readWriter.GetNode(latestNodeId);
-        return await FindTarget(index, latestNode);
+        var latestNode = await store.GetNode(latestNodeId);
+        return await FindTarget(insertingIndex, latestNode);
+    }
+
+    private async Task<FindTargetResult> FindTargetIn(TIndex index, TNode target)
+    {
+        for (var i = 0; i < target.Indices.Count; i++)
+        {
+            var existingIndex = target.Indices[i];
+            var indexCompareResult = await indexComparer.Compare(index, existingIndex);
+            if (indexCompareResult <= 0)
+            {
+                // our index is less than or equal to the other index, we found right place
+                return new FindTargetResult(target, i);
+            }
+        }
+
+        // return the latest position
+        return new FindTargetResult(target, target.Indices.Count);
     }
 
     private async Task<SplitNodeResult> SplitNode(TNode node)
     {
         var midIndex = node.Indices.Count / 2;
-        var halfChildren = node.Children.Count / 2;
+        var midChild = node.Children.Count / 2;
         var popupIndex = node.Indices[midIndex];
-        var rightNodeId = await readWriter.AllocateId();
+        var rightNodeId = await store.AllocateId();
         return new SplitNodeResult(
             node.Id,
-            new BTreeNodeCollection<TNodeId>(node.Children.Take(halfChildren).ToList()),
+            new BTreeNodeCollection<TNodeId>(node.Children.Take(midChild).ToList()),
             new BTreeIndexCollection<TIndex>(node.Indices.Take(midIndex).ToList()),
             rightNodeId,
-            new BTreeNodeCollection<TNodeId>(node.Children.Skip(halfChildren).ToList()),
+            new BTreeNodeCollection<TNodeId>(node.Children.Skip(midChild).ToList()),
             new BTreeIndexCollection<TIndex>(node.Indices.Skip(midIndex + 1).ToList()),
             popupIndex
         );

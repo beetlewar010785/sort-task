@@ -1,6 +1,9 @@
+using System.Runtime.CompilerServices;
+
 namespace SortTask.Domain.BTree.Memory;
 
-public class MemoryBTreeReadWriter : IBTreeReadWriter<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>
+public class MemoryBTreeStore
+    : IBTreeStore<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>
 {
     private MemoryBTreeNodeId? _rootId;
     private readonly Dictionary<MemoryBTreeNodeId, MemoryBTreeNode> _nodes = [];

@@ -3,9 +3,9 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader<StreamReadRow>
+public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader
 {
-    public async IAsyncEnumerable<StreamReadRow> ReadAsAsyncEnumerable()
+    public async IAsyncEnumerable<Row> ReadAsAsyncEnumerable()
     {
         using var reader = new StreamReader(stream, encoding, leaveOpen: true);
         while (await reader.ReadLineAsync() is { } rowString)
@@ -15,10 +15,10 @@ public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader<Stre
         }
     }
 
-    private static StreamReadRow DeserializeRow(string serializedRow)
+    private static Row DeserializeRow(string serializedRow)
     {
         var splitterIndex = serializedRow.IndexOf(Const.RowFieldsSplitter, StringComparison.Ordinal);
-        return new StreamReadRow(
+        return new Row(
             int.Parse(serializedRow[..splitterIndex]),
             serializedRow[(splitterIndex + Const.RowFieldsSplitter.Length)..]
         );

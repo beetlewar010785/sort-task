@@ -1,6 +1,6 @@
 namespace SortTask.Domain.BTree;
 
-public interface IBTreeReadWriter<TNode, TIndex, TNodeId>
+public interface IBTreeStore<TNode, TIndex, TNodeId>
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {

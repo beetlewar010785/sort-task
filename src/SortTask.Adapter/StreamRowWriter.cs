@@ -1,14 +1,13 @@
 using System.Text;
 using SortTask.Domain;
-using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Adapter;
 
-public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter<GeneratingRow>
+public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter
 {
     private readonly StreamWriter _streamWriter = new(stream, encoding, leaveOpen: true);
 
-    public Task Write(GeneratingRow row)
+    public Task Write(Row row)
     {
         var serializedRow = SerializeRow(row);
         return _streamWriter.WriteLineAsync(serializedRow);
@@ -19,7 +18,7 @@ public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter<Gene
         return _streamWriter.FlushAsync(cancellationToken);
     }
 
-    private static string SerializeRow(GeneratingRow row)
+    private static string SerializeRow(Row row)
     {
         return $"{row.Number}{Const.RowFieldsSplitter}{row.Sentence}";
     }
