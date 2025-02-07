@@ -33,7 +33,7 @@ public class CheckSortCommand(
         const string operationName = "Checking Sort...";
 
         ReadRow? previousRow = null;
-        await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
+        await foreach (var row in rowReader.ReadAsAsyncEnumerable(cancellationToken))
         {
             if (previousRow.HasValue)
             {

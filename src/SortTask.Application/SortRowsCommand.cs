@@ -23,7 +23,7 @@ public class SortRowsCommand<TIndex>(
         var writtenRows = 0;
         await foreach (var index in indexTraverser.Traverse().WithCancellation(cancellationToken))
         {
-            var row = await rowLookup.FindRow(index);
+            var row = await rowLookup.FindRow(index, cancellationToken);
             await rowWriter.Write(row.ToWriteRow());
 
             writtenRows++;

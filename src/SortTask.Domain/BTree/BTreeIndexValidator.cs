@@ -8,7 +8,7 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
-    public async Task Validate()
+    public async Task Validate(CancellationToken cancellationToken)
     {
         var root = await store.GetRoot();
         if (root == null)
@@ -16,12 +16,12 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
             return;
         }
 
-        await CheckMinMax(root);
+        await CheckMinMax(root, cancellationToken);
     }
 
-    private async Task CheckMinMax(TNode node)
+    private async Task CheckMinMax(TNode node, CancellationToken cancellationToken)
     {
-        await CheckSiblings(node);
+        await CheckSiblings(node, cancellationToken);
 
         if (node.Children.Count == 0)
         {
@@ -32,25 +32,26 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
         {
             var left = await store.GetNode(node.Children[i]);
             var right = await store.GetNode(node.Children[i + 1]);
-            await CheckMinMax(node.Indices[i], left, right);
+            await CheckMinMax(node.Indices[i], left, right, cancellationToken);
         }
 
         foreach (var childId in node.Children)
         {
             var child = await store.GetNode(childId);
-            await CheckMinMax(child);
+            await CheckMinMax(child, cancellationToken);
         }
     }
 
     private async Task CheckMinMax(
         TIndex currentIndex,
         TNode left,
-        TNode right)
+        TNode right,
+        CancellationToken cancellationToken)
     {
-        var currentRow = await rowLookup.FindRow(currentIndex);
+        var currentRow = await rowLookup.FindRow(currentIndex, cancellationToken);
 
         var leftMaxIndex = await GetRight(left);
-        var leftMaxRow = await rowLookup.FindRow(leftMaxIndex);
+        var leftMaxRow = await rowLookup.FindRow(leftMaxIndex, cancellationToken);
         var isLeftGreater = rowComparer.Compare(leftMaxRow, currentRow);
         if (isLeftGreater > 0)
         {
@@ -58,7 +59,7 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
         }
 
         var rightMinIndex = await GetLeft(right);
-        var rightMinRow = await rowLookup.FindRow(rightMinIndex);
+        var rightMinRow = await rowLookup.FindRow(rightMinIndex, cancellationToken);
         var isRightLess = rowComparer.Compare(rightMinRow, currentRow);
         if (isRightLess < 0)
         {
@@ -66,14 +67,14 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
         }
     }
 
-    private async Task CheckSiblings(TNode node)
+    private async Task CheckSiblings(TNode node, CancellationToken cancellationToken)
     {
         for (var i = 1; i < node.Indices.Count; i++)
         {
             var prev = node.Indices[i - 1];
             var curr = node.Indices[i];
-            var prevRow = await rowLookup.FindRow(prev);
-            var currRow = await rowLookup.FindRow(curr);
+            var prevRow = await rowLookup.FindRow(prev, cancellationToken);
+            var currRow = await rowLookup.FindRow(curr, cancellationToken);
             var result = rowComparer.Compare(prevRow, currRow);
             if (result > 0)
             {

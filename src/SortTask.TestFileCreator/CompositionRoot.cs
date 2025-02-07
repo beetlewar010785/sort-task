@@ -21,7 +21,8 @@ public class CompositionRoot(
 
         var file = File.Create(filePath);
 
-        var rowWriter = new StreamRowWriter(file, AdapterConst.Encoding);
+        var streamWriter = new StreamWriter(file, AdapterConst.Encoding, leaveOpen: true);
+        var rowWriter = new StreamRowWriter(streamWriter);
 
         var rnd = new Random();
         var rowGenerator = new RowGenerationRepeater(
@@ -44,7 +45,7 @@ public class CompositionRoot(
             .DecorateWithPredefinedStreamLength(file, estimatedSize)
             .DecorateWithProgressRender(progressRenderer);
 
-        return new CompositionRoot(feedRowCommand, [file]);
+        return new CompositionRoot(feedRowCommand, [streamWriter, file]);
     }
 
     public void Dispose()

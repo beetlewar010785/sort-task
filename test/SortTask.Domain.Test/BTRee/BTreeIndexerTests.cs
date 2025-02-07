@@ -24,7 +24,7 @@ public class BTreeIndexerTests
         long position = 0;
         foreach (var row in testCase.Rows)
         {
-            await sut.Index(new MemoryBTreeIndex(row.ToReadRow(position++)));
+            await sut.Index(new MemoryBTreeIndex(row.ToReadRow(position++)), CancellationToken.None);
         }
 
         var traverser = new BTreeIndexTraverser<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(store);
@@ -58,10 +58,10 @@ public class BTreeIndexerTests
         long position = 0;
         foreach (var row in testCase.Rows)
         {
-            await indexer.Index(new MemoryBTreeIndex(row.ToReadRow(position++)));
+            await indexer.Index(new MemoryBTreeIndex(row.ToReadRow(position++)), CancellationToken.None);
         }
 
-        Assert.DoesNotThrowAsync(sut.Validate);
+        Assert.DoesNotThrowAsync(() => sut.Validate(CancellationToken.None));
     }
 
     public record TestCase(IList<WriteRow> Rows, BTreeOrder Order);

@@ -19,10 +19,10 @@ public class BuildIndexCommand<TIndex>(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         const string operationName = "Building Index...";
-        await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
+        await foreach (var row in rowReader.ReadAsAsyncEnumerable(cancellationToken))
         {
             var index = indexFactory.CreateIndexFromRow(row);
-            await indexer.Index(index);
+            await indexer.Index(index, cancellationToken);
             yield return new CommandIteration<Result>(null, operationName);
         }
     }

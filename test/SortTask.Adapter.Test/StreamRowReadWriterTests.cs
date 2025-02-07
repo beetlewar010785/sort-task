@@ -1,6 +1,4 @@
-using System.Text;
 using SortTask.Domain;
-using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Adapter.Test;
 
@@ -9,8 +7,6 @@ public class StreamRowReadWriterTests
     [Test]
     public async Task Should_Read_All_Written_Rows()
     {
-        using var ms = new MemoryStream();
-
         var initialRows = new[]
         {
             new WriteRow(1, "some string 1"),
@@ -18,7 +14,9 @@ public class StreamRowReadWriterTests
             new WriteRow(3, "some another string")
         };
 
-        var writer = new StreamRowWriter(ms, Encoding.UTF8);
+        using var ms = new MemoryStream();
+        await using var streamWriter = new StreamWriter(ms, AdapterConst.Encoding, leaveOpen: true);
+        var writer = new StreamRowWriter(streamWriter);
         foreach (var row in initialRows)
         {
             await writer.Write(row);
@@ -27,9 +25,10 @@ public class StreamRowReadWriterTests
         await writer.Flush(CancellationToken.None);
         ms.Position = 0;
 
-        var reader = new StreamRowReader(ms, Encoding.UTF8);
+        using var streamReader = new StreamReader(ms, AdapterConst.Encoding, leaveOpen: true);
+        var reader = new StreamRowReader(streamReader);
 
-        var actualRows = (await reader.ReadAsAsyncEnumerable().ToArrayAsync())
+        var actualRows = (await reader.ReadAsAsyncEnumerable(CancellationToken.None).ToArrayAsync())
             .Select(rr => rr.ToWriteRow())
             .ToList();
         Assert.That(actualRows, Is.EqualTo(initialRows));

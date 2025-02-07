@@ -11,8 +11,4 @@
       <ProjectReference Include="..\SortTask.Domain\SortTask.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="StreamBTree\" />
-    </ItemGroup>
-
 </Project>

@@ -1,29 +1,16 @@
-using System.Text;
+using System.Runtime.CompilerServices;
 using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader
+public class StreamRowReader(StreamReader streamReader) : IRowReader
 {
-    public async IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable()
+    public async IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable(
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(stream, encoding, leaveOpen: true);
-        long position = 0;
-        while (await reader.ReadLineAsync() is { } rowString)
+        while (!streamReader.EndOfStream)
         {
-            var row = DeserializeRow(rowString, position);
-            position = stream.Position;
-            yield return row;
+            yield return await streamReader.DeserializeRow(cancellationToken);
         }
-    }
-
-    private static ReadRow DeserializeRow(string serializedRow, long position)
-    {
-        var splitterIndex = serializedRow.IndexOf(AdapterConst.RowFieldsSplitter, StringComparison.Ordinal);
-        return new ReadRow(
-            int.Parse(serializedRow[..splitterIndex]),
-            serializedRow[(splitterIndex + AdapterConst.RowFieldsSplitter.Length)..],
-            position
-        );
     }
 }

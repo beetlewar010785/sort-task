@@ -9,7 +9,7 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
-    public async Task Index(TIndex index)
+    public async Task Index(TIndex index, CancellationToken cancellationToken)
     {
         var root = await store.GetRoot();
         if (root == null)
@@ -18,11 +18,11 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             return;
         }
 
-        var targetResult = await FindTarget(index, root);
-        await InsertIndex(targetResult.Target, targetResult.Position, index);
+        var targetResult = await FindTarget(index, root, cancellationToken);
+        await InsertIndex(targetResult.Target, targetResult.Position, index, cancellationToken);
     }
 
-    private async Task InsertIndex(TNode targetNode, int position, TIndex index)
+    private async Task InsertIndex(TNode targetNode, int position, TIndex index, CancellationToken cancellationToken)
     {
         var newIndices = targetNode.Indices.ToList();
         newIndices.Insert(position, index);
@@ -33,10 +33,10 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             newIndices
         );
         await store.SaveNode(targetNode);
-        await CheckOverflow(targetNode);
+        await CheckOverflow(targetNode, cancellationToken);
     }
 
-    private async Task CheckOverflow(TNode node)
+    private async Task CheckOverflow(TNode node, CancellationToken cancellationToken)
     {
         if (!order.IsOverflowed(node.Indices.Count))
         {
@@ -68,7 +68,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
                 parent: parent,
                 insertingNode: rightNodeId,
                 insertNodeAfter: node.Id,
-                insertingIndex: splitResult.PopupIndex);
+                insertingIndex: splitResult.PopupIndex,
+                cancellationToken: cancellationToken);
         }
 
         await CreateOrUpdateNode(
@@ -88,7 +89,7 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         );
 
         // repeat recursively until we reach the root or find a node that is not overflowed
-        await CheckOverflow(parent);
+        await CheckOverflow(parent, cancellationToken);
     }
 
     private SplitNodeResult SplitNode(TNode node)
@@ -109,10 +110,10 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         TNode parent,
         TIndex insertingIndex,
         TNodeId insertingNode,
-        TNodeId insertNodeAfter
-    )
+        TNodeId insertNodeAfter,
+        CancellationToken cancellationToken)
     {
-        var target = await FindTargetIn(insertingIndex, parent);
+        var target = await FindTargetIn(insertingIndex, parent, cancellationToken);
 
         var newChildren = parent.Children.ToList();
         var insertingNodePosition = newChildren.IndexOf(insertNodeAfter) + 1;
@@ -179,39 +180,40 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         }
     }
 
-    private async Task<FindTargetResult> FindTarget(TIndex insertingIndex, TNode searchInNode)
+    private async Task<FindTargetResult> FindTarget(TIndex insertingIndex, TNode searchInNode,
+        CancellationToken cancellationToken)
     {
         if (searchInNode.Children.Count == 0)
         {
             // this is a leaf node, no need to search further
-            return await FindTargetIn(insertingIndex, searchInNode);
+            return await FindTargetIn(insertingIndex, searchInNode, cancellationToken);
         }
 
         // search child where our index which is greater than our index to drill down
         for (var i = 0; i < searchInNode.Indices.Count; i++)
         {
             var existingIndex = searchInNode.Indices[i];
-            var indexCompareResult = await indexComparer.Compare(insertingIndex, existingIndex);
+            var indexCompareResult = await indexComparer.Compare(insertingIndex, existingIndex, cancellationToken);
             if (indexCompareResult <= 0)
             {
                 var nodeId = searchInNode.Children[i];
                 var node = await store.GetNode(nodeId);
-                return await FindTarget(insertingIndex, node);
+                return await FindTarget(insertingIndex, node, cancellationToken);
             }
         }
 
         // our index is the greatest in the node, search in the rightmost child 
         var latestNodeId = searchInNode.Children[^1];
         var latestNode = await store.GetNode(latestNodeId);
-        return await FindTarget(insertingIndex, latestNode);
+        return await FindTarget(insertingIndex, latestNode, cancellationToken);
     }
 
-    private async Task<FindTargetResult> FindTargetIn(TIndex index, TNode target)
+    private async Task<FindTargetResult> FindTargetIn(TIndex index, TNode target, CancellationToken cancellationToken)
     {
         for (var i = 0; i < target.Indices.Count; i++)
         {
             var existingIndex = target.Indices[i];
-            var indexCompareResult = await indexComparer.Compare(index, existingIndex);
+            var indexCompareResult = await indexComparer.Compare(index, existingIndex, cancellationToken);
             if (indexCompareResult <= 0)
             {
                 // our index is less than or equal to the other index, we found right place

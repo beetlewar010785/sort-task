@@ -1,21 +1,18 @@
-using System.Text;
 using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter
+public class StreamRowWriter(StreamWriter streamWriter) : IRowWriter
 {
-    private readonly StreamWriter _streamWriter = new(stream, encoding, leaveOpen: true);
-
     public Task Write(WriteRow row)
     {
         var serializedRow = SerializeRow(row);
-        return _streamWriter.WriteLineAsync(serializedRow);
+        return streamWriter.WriteLineAsync(serializedRow);
     }
 
     public Task Flush(CancellationToken cancellationToken)
     {
-        return _streamWriter.FlushAsync(cancellationToken);
+        return streamWriter.FlushAsync(cancellationToken);
     }
 
     private static string SerializeRow(WriteRow row)

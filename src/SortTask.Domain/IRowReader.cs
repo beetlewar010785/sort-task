@@ -2,5 +2,5 @@ namespace SortTask.Domain;
 
 public interface IRowReader
 {
-    IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable();
+    IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable(CancellationToken cancellationToken);
 }

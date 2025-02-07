@@ -5,5 +5,5 @@ namespace SortTask.Domain;
 public interface IIndexer<in TIndex>
     where TIndex : IIndex
 {
-    Task Index(TIndex index);
+    Task Index(TIndex index, CancellationToken cancellationToken);
 }

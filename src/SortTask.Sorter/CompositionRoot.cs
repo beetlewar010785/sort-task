@@ -39,8 +39,12 @@ public class CompositionRoot(
             new MemoryBTreeIndexComparer(new RowComparer()),
             order);
 
-        var rowReader = new StreamRowReader(inputFile, AdapterConst.Encoding);
-        var rowWriter = new StreamRowWriter(outputFile, AdapterConst.Encoding);
+        var streamReader = new StreamReader(inputFile, AdapterConst.Encoding, leaveOpen: true);
+        var rowReader = new StreamRowReader(streamReader);
+
+        var streamWriter = new StreamWriter(outputFile, AdapterConst.Encoding, leaveOpen: true);
+        var rowWriter = new StreamRowWriter(streamWriter);
+
         var indexTraverser = new BTreeIndexTraverser<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(
             store);
 
@@ -60,7 +64,10 @@ public class CompositionRoot(
             .DecorateWithPredefinedStreamLength(outputFile, inputFile.Length)
             .DecorateWithProgressRender(progressRenderer);
 
-        return new CompositionRoot(buildIndexCommand, sortRowsCommand, [inputFile, outputFile]);
+        return new CompositionRoot(
+            buildIndexCommand,
+            sortRowsCommand,
+            [streamReader, streamWriter, inputFile, outputFile]);
     }
 
     public void Dispose()
