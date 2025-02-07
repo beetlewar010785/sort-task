@@ -1,6 +1,6 @@
 namespace SortTask.Domain.BTree.Memory;
 
-public class MemoryBTreeIndex(Row row) : IIndex
+public readonly struct MemoryBTreeIndex(Row row) : IIndex
 {
     public Row Row { get; } = row;
 

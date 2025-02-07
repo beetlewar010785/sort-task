@@ -34,12 +34,11 @@ public class CheckSortCommand(
             Row? previousRow = null;
             await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
             {
-                if (previousRow != null)
+                if (previousRow.HasValue)
                 {
-                    if (rowComparer.Compare(row, previousRow) < 0)
+                    if (rowComparer.Compare(row, previousRow.Value) < 0)
                     {
-                        return CheckSortResult.Failure(previousRow, row);
-                        throw new Exception($"The row {row} is less than the preceding row {previousRow}.");
+                        return CheckSortResult.Failure(previousRow.Value, row);
                     }
                 }
 

@@ -1,3 +1,12 @@
 namespace SortTask.Domain;
 
-public record Row(int Number, string Sentence);
+public readonly struct Row(int number, string sentence)
+{
+    public int Number => number;
+    public string Sentence => sentence;
+
+    public override string ToString()
+    {
+        return $"{Number}. {Sentence}";
+    }
+}
