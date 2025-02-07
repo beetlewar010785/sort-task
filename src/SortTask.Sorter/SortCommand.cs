@@ -129,7 +129,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             .AddSingleton(_ => new BTreeOrder(bTreeOrder))
             .AddSingleton<IIndexer<MemoryBTreeIndex>,
                 BTreeIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>>()
-            .AddSingleton<IComparer<Row>, RowComparer>()
+            .AddSingleton<IComparer<ReadRow>, RowComparer>()
             .AddSingleton<IRowReader, StreamRowReader>(sp =>
                 new StreamRowReader(inputFile, sp.GetRequiredService<Encoding>()))
             .AddSingleton<IRowWriter, StreamRowWriter>(sp =>

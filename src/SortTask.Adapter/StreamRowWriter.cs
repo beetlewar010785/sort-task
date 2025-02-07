@@ -7,7 +7,7 @@ public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter
 {
     private readonly StreamWriter _streamWriter = new(stream, encoding, leaveOpen: true);
 
-    public Task Write(Row row)
+    public Task Write(WriteRow row)
     {
         var serializedRow = SerializeRow(row);
         return _streamWriter.WriteLineAsync(serializedRow);
@@ -18,7 +18,7 @@ public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter
         return _streamWriter.FlushAsync(cancellationToken);
     }
 
-    private static string SerializeRow(Row row)
+    private static string SerializeRow(WriteRow row)
     {
         return $"{row.Number}{Const.RowFieldsSplitter}{row.Sentence}";
     }

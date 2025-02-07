@@ -2,6 +2,6 @@ namespace SortTask.Domain;
 
 public interface IRowWriter
 {
-    Task Write(Row row);
+    Task Write(WriteRow row);
     Task Flush(CancellationToken cancellationToken);
 }

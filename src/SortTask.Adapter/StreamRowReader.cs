@@ -5,22 +5,25 @@ namespace SortTask.Adapter;
 
 public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader
 {
-    public async IAsyncEnumerable<Row> ReadAsAsyncEnumerable()
+    public async IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable()
     {
         using var reader = new StreamReader(stream, encoding, leaveOpen: true);
+        long position = 0;
         while (await reader.ReadLineAsync() is { } rowString)
         {
-            var row = DeserializeRow(rowString);
+            var row = DeserializeRow(rowString, position);
+            position = stream.Position;
             yield return row;
         }
     }
 
-    private static Row DeserializeRow(string serializedRow)
+    private static ReadRow DeserializeRow(string serializedRow, long position)
     {
         var splitterIndex = serializedRow.IndexOf(Const.RowFieldsSplitter, StringComparison.Ordinal);
-        return new Row(
+        return new ReadRow(
             int.Parse(serializedRow[..splitterIndex]),
-            serializedRow[(splitterIndex + Const.RowFieldsSplitter.Length)..]
+            serializedRow[(splitterIndex + Const.RowFieldsSplitter.Length)..],
+            position
         );
     }
 }

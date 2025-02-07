@@ -2,5 +2,5 @@ namespace SortTask.Domain;
 
 public interface IRowReader
 {
-    IAsyncEnumerable<Row> ReadAsAsyncEnumerable();
+    IAsyncEnumerable<ReadRow> ReadAsAsyncEnumerable();
 }

@@ -93,7 +93,7 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
         var sc = new ServiceCollection();
 
         sc.AddSingleton<Encoding>(_ => Encoding.UTF8).AddSingleton<Stream>(File.OpenRead(filePath))
-            .AddSingleton<IComparer<Row>, RowComparer>()
+            .AddSingleton<IComparer<ReadRow>, RowComparer>()
             .AddSingleton<IRowReader, StreamRowReader>()
             .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
             .AddSingleton<CheckSortCommand>();

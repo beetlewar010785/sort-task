@@ -3,7 +3,7 @@ namespace SortTask.Domain.BTree;
 public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
     IBTreeStore<TNode, TIndex, TNodeId> store,
     IRowLookup<TIndex> rowLookup,
-    IComparer<Row> rowComparer
+    IComparer<ReadRow> rowComparer
 )
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex

@@ -1,6 +1,6 @@
 namespace SortTask.Domain.BTree.Memory;
 
-public class MemoryBTreeIndexComparer(IComparer<Row> rowComparer)
+public class MemoryBTreeIndexComparer(IComparer<ReadRow> rowComparer)
     : IBTreeIndexComparer<MemoryBTreeIndex>
 {
     public Task<int> Compare(MemoryBTreeIndex x, MemoryBTreeIndex y)

@@ -5,7 +5,7 @@ namespace SortTask.Application;
 public class CheckSortCommand(
     Stream stream,
     IRowReader rowReader,
-    IComparer<Row> rowComparer,
+    IComparer<ReadRow> rowComparer,
     IProgressRenderer progressRenderer
 )
 {
@@ -15,15 +15,15 @@ public class CheckSortCommand(
         {
         }
 
-        public class CheckSortResultFailure(Row precedingRow, Row failedRow) : CheckSortResult
+        public class CheckSortResultFailure(ReadRow precedingRow, ReadRow failedRow) : CheckSortResult
         {
-            public Row PrecedingRow => precedingRow;
-            public Row FailedRow => failedRow;
+            public ReadRow PrecedingRow => precedingRow;
+            public ReadRow FailedRow => failedRow;
         }
 
-        public static CheckSortResultOk Ok() => new CheckSortResultOk();
+        public static CheckSortResultOk Ok() => new();
 
-        public static CheckSortResult Failure(Row previousRow, Row nextRow) =>
+        public static CheckSortResult Failure(ReadRow previousRow, ReadRow nextRow) =>
             new CheckSortResultFailure(previousRow, nextRow);
     }
 
@@ -31,7 +31,7 @@ public class CheckSortCommand(
     {
         try
         {
-            Row? previousRow = null;
+            ReadRow? previousRow = null;
             await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
             {
                 if (previousRow.HasValue)

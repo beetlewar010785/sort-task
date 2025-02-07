@@ -36,7 +36,7 @@ public class SortRowsCommand<TIndex>(
             await foreach (var index in indexTraverser.Traverse().WithCancellation(cancellationToken))
             {
                 var row = await rowLookup.FindRow(index);
-                await rowWriter.Write(row);
+                await rowWriter.Write(row.ToWriteRow());
 
                 writtenRows++;
                 if (writtenRows % flushPeriod != 0) continue;

@@ -21,14 +21,15 @@ public class BTreeIndexerTests
             testCase.Order
         );
 
+        long position = 0;
         foreach (var row in testCase.Rows)
         {
-            await sut.Index(new MemoryBTreeIndex(row));
+            await sut.Index(new MemoryBTreeIndex(row.ToReadRow(position++)));
         }
 
         var traverser = new BTreeIndexTraverser<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(store);
         var sortedNodes = await traverser.Traverse().ToListAsync(CancellationToken.None);
-        var sortedRows = sortedNodes.Select(n => n.Row).ToList();
+        var sortedRows = sortedNodes.Select(n => n.Row.ToWriteRow()).ToList();
 
         var expectedSortedRows = testCase.Rows.OrderBy(r => r, rowComparer).ToList();
         Assert.That(sortedRows, Is.EqualTo(expectedSortedRows));
@@ -53,15 +54,17 @@ public class BTreeIndexerTests
             new MemoryBTreeRowLookup(),
             rowComparer
         );
+
+        long position = 0;
         foreach (var row in testCase.Rows)
         {
-            await indexer.Index(new MemoryBTreeIndex(row));
+            await indexer.Index(new MemoryBTreeIndex(row.ToReadRow(position++)));
         }
 
         Assert.DoesNotThrowAsync(sut.Validate);
     }
 
-    public record TestCase(IList<Row> Rows, BTreeOrder Order);
+    public record TestCase(IList<WriteRow> Rows, BTreeOrder Order);
 
     private static IEnumerable<TestCaseData> SortingCases()
     {
@@ -70,34 +73,34 @@ public class BTreeIndexerTests
 
         yield return new TestCaseData(new TestCase(
                 [
-                    new Row(23990, "Frozen Buckinghamshire Trail"),
-                    new Row(38680, "Djibouti Franc Money Market Account"),
-                    new Row(79758, "Idaho Guinea-Bissau East Caribbean Dollar"),
-                    new Row(58832, "overriding Alabama withdrawal"),
-                    new Row(6815, "online"),
-                    new Row(21539, "Forges Networked HDD Tennessee"),
-                    new Row(7557, "bypass"),
-                    new Row(13762, "Horizontal Avon Avon"),
-                    new Row(45205, "Island Turnpike"),
-                    new Row(49535, "Park Web Small Wooden Mouse"),
-                    new Row(56546, "Intelligent Rubber Salad Sports & Toys mobile Jewelery, Grocery & Toys"),
-                    new Row(41868, "Metal"),
-                    new Row(86638, "mobile Technician"),
-                    new Row(98549, "Security markets Tasty Soft Sausages programming"),
-                    new Row(78055, "monitor Key Mountains Cotton"),
-                    new Row(8992, "upward-trending moderator Avon Technician"),
-                    new Row(42332, "Solutions partnerships"),
-                    new Row(16054, "Personal Loan Account Practical Rubber Towels"),
-                    new Row(58160, "frame Quality-focused"),
-                    new Row(53448, "Coordinator pink"),
-                    new Row(28512, "Bedfordshire invoice Avon Small Rubber Shoes"),
-                    new Row(62574, "Buckinghamshire Forward"),
-                    new Row(51466, "Division Principal Personal Loan Account"),
-                    new Row(44270, "Plaza Home Loan Account Concrete structure"),
-                    new Row(59546, "calculating optical Handmade Wooden Soap Handcrafted Soft Chicken"),
-                    new Row(95987, "Wooden Street"),
-                    new Row(18708, "New Leu"),
-                    new Row(88794, "Incredible Plastic Salad Zimbabwe one-to-one")
+                    new WriteRow(23990, "Frozen Buckinghamshire Trail"),
+                    new WriteRow(38680, "Djibouti Franc Money Market Account"),
+                    new WriteRow(79758, "Idaho Guinea-Bissau East Caribbean Dollar"),
+                    new WriteRow(58832, "overriding Alabama withdrawal"),
+                    new WriteRow(6815, "online"),
+                    new WriteRow(21539, "Forges Networked HDD Tennessee"),
+                    new WriteRow(7557, "bypass"),
+                    new WriteRow(13762, "Horizontal Avon Avon"),
+                    new WriteRow(45205, "Island Turnpike"),
+                    new WriteRow(49535, "Park Web Small Wooden Mouse"),
+                    new WriteRow(56546, "Intelligent Rubber Salad Sports & Toys mobile Jewelery, Grocery & Toys"),
+                    new WriteRow(41868, "Metal"),
+                    new WriteRow(86638, "mobile Technician"),
+                    new WriteRow(98549, "Security markets Tasty Soft Sausages programming"),
+                    new WriteRow(78055, "monitor Key Mountains Cotton"),
+                    new WriteRow(8992, "upward-trending moderator Avon Technician"),
+                    new WriteRow(42332, "Solutions partnerships"),
+                    new WriteRow(16054, "Personal Loan Account Practical Rubber Towels"),
+                    new WriteRow(58160, "frame Quality-focused"),
+                    new WriteRow(53448, "Coordinator pink"),
+                    new WriteRow(28512, "Bedfordshire invoice Avon Small Rubber Shoes"),
+                    new WriteRow(62574, "Buckinghamshire Forward"),
+                    new WriteRow(51466, "Division Principal Personal Loan Account"),
+                    new WriteRow(44270, "Plaza Home Loan Account Concrete structure"),
+                    new WriteRow(59546, "calculating optical Handmade Wooden Soap Handcrafted Soft Chicken"),
+                    new WriteRow(95987, "Wooden Street"),
+                    new WriteRow(18708, "New Leu"),
+                    new WriteRow(88794, "Incredible Plastic Salad Zimbabwe one-to-one")
                 ],
                 new BTreeOrder(2)))
             .SetName("Predefined rows");

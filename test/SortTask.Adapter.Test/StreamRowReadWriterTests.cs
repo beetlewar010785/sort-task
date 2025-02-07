@@ -13,9 +13,9 @@ public class StreamRowReadWriterTests
 
         var initialRows = new[]
         {
-            new Row(1, "some string 1"),
-            new Row(2, "some string 2"),
-            new Row(3, "some another string")
+            new WriteRow(1, "some string 1"),
+            new WriteRow(2, "some string 2"),
+            new WriteRow(3, "some another string")
         };
 
         var writer = new StreamRowWriter(ms, Encoding.UTF8);
@@ -29,7 +29,9 @@ public class StreamRowReadWriterTests
 
         var reader = new StreamRowReader(ms, Encoding.UTF8);
 
-        var actualRows = await reader.ReadAsAsyncEnumerable().ToArrayAsync();
+        var actualRows = (await reader.ReadAsAsyncEnumerable().ToArrayAsync())
+            .Select(rr => rr.ToWriteRow())
+            .ToList();
         Assert.That(actualRows, Is.EqualTo(initialRows));
     }
 }
