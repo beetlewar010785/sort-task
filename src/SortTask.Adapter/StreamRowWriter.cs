@@ -20,6 +20,6 @@ public class StreamRowWriter(Stream stream, Encoding encoding) : IRowWriter
 
     private static string SerializeRow(WriteRow row)
     {
-        return $"{row.Number}{Const.RowFieldsSplitter}{row.Sentence}";
+        return $"{row.Number}{AdapterConst.RowFieldsSplitter}{row.Sentence}";
     }
 }

@@ -19,10 +19,10 @@ public class StreamRowReader(Stream stream, Encoding encoding) : IRowReader
 
     private static ReadRow DeserializeRow(string serializedRow, long position)
     {
-        var splitterIndex = serializedRow.IndexOf(Const.RowFieldsSplitter, StringComparison.Ordinal);
+        var splitterIndex = serializedRow.IndexOf(AdapterConst.RowFieldsSplitter, StringComparison.Ordinal);
         return new ReadRow(
             int.Parse(serializedRow[..splitterIndex]),
-            serializedRow[(splitterIndex + Const.RowFieldsSplitter.Length)..],
+            serializedRow[(splitterIndex + AdapterConst.RowFieldsSplitter.Length)..],
             position
         );
     }

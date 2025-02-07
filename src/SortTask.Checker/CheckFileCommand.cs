@@ -2,11 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using SortTask.Adapter;
 using SortTask.Application;
-using SortTask.Domain;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -48,9 +44,6 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
         AnsiConsole.MarkupLine($"[yellow]Checking file:[/] {settings.FilePath.EscapeMarkup()}");
 
-        var sc = BuildServiceCollection(settings.FilePath);
-        await using var serviceProvider = sc.BuildServiceProvider();
-
         AnsiConsole.MarkupLine("[green]Start checking sorted file.[/]");
 
         var sw = new Stopwatch();
@@ -67,10 +60,14 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            var command = serviceProvider.GetRequiredService<CheckSortCommand>();
-            var result = await command.Execute(cts.Token);
-            if (result is CheckSortCommand.CheckSortResult.CheckSortResultFailure failure)
+            var compositionRoot = CompositionRoot.Build(settings.FilePath);
+
+            await foreach (var iteration in compositionRoot
+                               .CheckSortCommand
+                               .Execute(new CheckSortCommand.Param(), cts.Token))
             {
+                if (iteration.Result is not CheckSortCommand.Result.ResultFailure failure) continue;
+
                 AnsiConsole.MarkupLine(
                     $"[red]File is not sorted. The row {failure.FailedRow} is less than the preceding row {failure.PrecedingRow}.[/]");
                 return 1;
@@ -86,18 +83,5 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
         return 0;
-    }
-
-    private static ServiceCollection BuildServiceCollection(string filePath)
-    {
-        var sc = new ServiceCollection();
-
-        sc.AddSingleton<Encoding>(_ => Encoding.UTF8).AddSingleton<Stream>(File.OpenRead(filePath))
-            .AddSingleton<IComparer<ReadRow>, RowComparer>()
-            .AddSingleton<IRowReader, StreamRowReader>()
-            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
-            .AddSingleton<CheckSortCommand>();
-
-        return sc;
     }
 }

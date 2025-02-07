@@ -2,11 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using SortTask.Adapter;
 using SortTask.Application;
-using SortTask.Domain;
 using SortTask.Domain.BTree;
 using SortTask.Domain.BTree.Memory;
 using Spectre.Console;
@@ -77,13 +73,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.OutputFilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
-        var sc = BuildServiceCollection(
-            inputFilePath: settings.InputFilePath,
-            outputFilePath: settings.OutputFilePath,
-            bTreeOrder: settings.BTreeOrder
-        );
-        await using var serviceProvider = sc.BuildServiceProvider();
-
         AnsiConsole.MarkupLine("[green]Start sorting.[/]");
 
         var sw = new Stopwatch();
@@ -100,8 +89,16 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            var fileRowFeeder = serviceProvider.GetRequiredService<SortRowsCommand<MemoryBTreeIndex>>();
-            await fileRowFeeder.Execute(cts.Token);
+            using var compositionRoot = CompositionRoot.Build(
+                inputFilePath: settings.InputFilePath,
+                outputFilePath: settings.OutputFilePath,
+                order: new BTreeOrder(settings.BTreeOrder));
+
+            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand<MemoryBTreeIndex>.Param(), cts.Token)
+                .ToListAsync(cancellationToken: cts.Token);
+
+            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<MemoryBTreeIndex>.Param(), cts.Token)
+                .ToListAsync(cancellationToken: cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -114,77 +111,5 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
 
         return 0;
-    }
-
-    private static ServiceCollection BuildServiceCollection(string inputFilePath, string outputFilePath, int bTreeOrder)
-    {
-        var serviceCollection = new ServiceCollection();
-
-        var inputFile = File.OpenRead(inputFilePath);
-        var outputFile = File.Create(outputFilePath);
-
-        serviceCollection.AddSingleton<Encoding>(_ => Encoding.UTF8)
-            .AddSingleton(inputFile)
-            .AddSingleton(outputFile)
-            .AddSingleton(_ => new BTreeOrder(bTreeOrder))
-            .AddSingleton<IComparer<ReadRow>, RowComparer>()
-            .AddSingleton<IRowReader, StreamRowReader>(sp =>
-                new StreamRowReader(inputFile, sp.GetRequiredService<Encoding>()))
-            .AddSingleton<IRowWriter, StreamRowWriter>(sp =>
-                new StreamRowWriter(outputFile, sp.GetRequiredService<Encoding>()))
-            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth));
-
-        AddBTreeServices<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(serviceCollection);
-        AddAppServices<MemoryBTreeIndex>(serviceCollection, inputFile, outputFile);
-        AddMemoryBTreeServices(serviceCollection);
-
-        return serviceCollection;
-    }
-
-    private static void AddBTreeServices<TNode, TIndex, TNodeId>(ServiceCollection serviceCollection)
-        where TNode : IBTreeNode<TNode, TIndex, TNodeId>
-        where TIndex : IIndex
-    {
-        serviceCollection
-            .AddSingleton<IIndexer<TIndex>,
-                BTreeIndexer<TNode, TIndex, TNodeId>>();
-    }
-
-    private static void AddAppServices<TIndex>(
-        ServiceCollection serviceCollection,
-        Stream sourceStream,
-        Stream targetStream
-    )
-        where TIndex : IIndex
-    {
-        serviceCollection.AddSingleton(sp => new SortRowsCommand<TIndex>(
-                sp.GetRequiredService<IRowReader>(),
-                sp.GetRequiredService<IIndexer<TIndex>>(),
-                sp.GetRequiredService<IIndexFactory<TIndex>>(),
-                sp.GetRequiredService<IIndexTraverser<TIndex>>(),
-                sp.GetRequiredService<IRowLookup<TIndex>>(),
-                sp.GetRequiredService<IRowWriter>(),
-                sp.GetRequiredService<IProgressRenderer>(),
-                sourceStream,
-                targetStream
-            )
-        );
-    }
-
-    private static void AddMemoryBTreeServices(IServiceCollection serviceCollection)
-    {
-        serviceCollection
-            .AddSingleton<IBTreeStore<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>,
-                MemoryBTreeStore>()
-            .AddSingleton<IBTreeNodeFactory<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>,
-                MemoryBTreeNodeFactory>()
-            .AddSingleton<IBTreeIndexComparer<MemoryBTreeIndex>,
-                MemoryBTreeIndexComparer>()
-            .AddSingleton<IIndexFactory<MemoryBTreeIndex>,
-                MemoryBTreeIndexFactory>()
-            .AddSingleton<IIndexTraverser<MemoryBTreeIndex>,
-                BTreeIndexTraverser<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>>()
-            .AddSingleton<IRowLookup<MemoryBTreeIndex>,
-                MemoryBTreeRowLookup>();
     }
 }

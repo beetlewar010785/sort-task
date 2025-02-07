@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using SortTask.Domain;
 using SortTask.Domain.RowGeneration;
 
@@ -7,43 +8,44 @@ public class FeedRowCommand(
     Stream targetStream,
     IRowWriter rowWriter,
     IRowGenerator rowGenerator,
-    IProgressRenderer progressRenderer
-)
+    long estimatedSize
+) : ICommand<FeedRowCommand.Param, FeedRowCommand.Result>
 {
-    public async Task Execute(long estimatedSize, CancellationToken cancellationToken)
+    public record Param;
+
+    public abstract record Result;
+
+    public async IAsyncEnumerable<CommandIteration<Result>> Execute(
+        Param param,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        const int flushPeriod = 10000;
+        const string operationName = "Generating Test Data...";
 
-        try
+        var writtenRows = 0;
+        while (true)
         {
-            var writtenRows = 0;
-            while (true)
+            var rows = rowGenerator.Generate();
+            foreach (var row in rows)
             {
-                var rows = rowGenerator.Generate();
-                foreach (var row in rows)
+                await rowWriter.Write(row);
+
+                writtenRows++;
+                if (writtenRows % AppConst.FlushPeriod == 0)
                 {
-                    await rowWriter.Write(row);
-
-                    writtenRows++;
-                    if (writtenRows % flushPeriod != 0) continue;
-
                     await rowWriter.Flush(cancellationToken);
-
-                    var progress = Math.Min(100 * targetStream.Position / (double)estimatedSize, 100);
-                    progressRenderer.Render((int)progress, "Generating Test Data");
                 }
 
-                if (targetStream.Position >= estimatedSize)
-                {
-                    break;
-                }
+                yield return new CommandIteration<Result>(
+                    null,
+                    operationName);
             }
 
-            await rowWriter.Flush(cancellationToken);
+            if (targetStream.Position >= estimatedSize)
+            {
+                break;
+            }
         }
-        finally
-        {
-            progressRenderer.Clear();
-        }
+
+        await rowWriter.Flush(cancellationToken);
     }
 }

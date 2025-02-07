@@ -5,7 +5,7 @@ namespace SortTask.Adapter;
 public class ConsoleProgressRenderer(int barWidth) : IProgressRenderer
 {
     private string? _lastRenderedString;
-    private readonly ConsoleProgressStringBuilder _progressBuilder = new ConsoleProgressStringBuilder(barWidth);
+    private readonly ConsoleProgressStringBuilder _progressBuilder = new(barWidth);
 
     public void Render(int percent, string text)
     {
@@ -13,7 +13,7 @@ public class ConsoleProgressRenderer(int barWidth) : IProgressRenderer
         Console.Write($"\r{_lastRenderedString}");
     }
 
-    public void Clear()
+    public void Complete()
     {
         if (_lastRenderedString == null) return;
 

@@ -1,58 +1,55 @@
+using System.Runtime.CompilerServices;
 using SortTask.Domain;
 
 namespace SortTask.Application;
 
 public class CheckSortCommand(
-    Stream stream,
     IRowReader rowReader,
-    IComparer<ReadRow> rowComparer,
-    IProgressRenderer progressRenderer
-)
+    IComparer<ReadRow> rowComparer
+) : ICommand<CheckSortCommand.Param, CheckSortCommand.Result>
 {
-    public abstract class CheckSortResult
-    {
-        public class CheckSortResultOk : CheckSortResult
-        {
-        }
+    public record Param;
 
-        public class CheckSortResultFailure(ReadRow precedingRow, ReadRow failedRow) : CheckSortResult
+    public abstract class Result
+    {
+        public class ResultOk : Result;
+
+        public class ResultFailure(ReadRow precedingRow, ReadRow failedRow) : Result
         {
             public ReadRow PrecedingRow => precedingRow;
             public ReadRow FailedRow => failedRow;
         }
 
-        public static CheckSortResultOk Ok() => new();
+        public static ResultOk Ok() => new();
 
-        public static CheckSortResult Failure(ReadRow previousRow, ReadRow nextRow) =>
-            new CheckSortResultFailure(previousRow, nextRow);
+        public static Result Failure(ReadRow previousRow, ReadRow nextRow) =>
+            new ResultFailure(previousRow, nextRow);
     }
 
-    public async Task<CheckSortResult> Execute(CancellationToken cancellationToken)
+    public async IAsyncEnumerable<CommandIteration<Result>> Execute(
+        Param param,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        try
+        const string operationName = "Checking Sort...";
+
+        ReadRow? previousRow = null;
+        await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
         {
-            ReadRow? previousRow = null;
-            await foreach (var row in rowReader.ReadAsAsyncEnumerable().WithCancellation(cancellationToken))
+            if (previousRow.HasValue)
             {
-                if (previousRow.HasValue)
+                if (rowComparer.Compare(row, previousRow.Value) < 0)
                 {
-                    if (rowComparer.Compare(row, previousRow.Value) < 0)
-                    {
-                        return CheckSortResult.Failure(previousRow.Value, row);
-                    }
+                    yield return new CommandIteration<Result>(
+                        Result.Failure(previousRow.Value, row), operationName);
+                    yield break;
                 }
 
-                previousRow = row;
-
-                var progress = Math.Min(100 * stream.Position / (double)stream.Length, 100);
-                progressRenderer.Render((int)progress, "Sort Checking");
+                yield return new CommandIteration<Result>(Result.Ok(), operationName);
             }
-        }
-        finally
-        {
-            progressRenderer.Clear();
+
+            previousRow = row;
         }
 
-        return CheckSortResult.Ok();
+        yield return new CommandIteration<Result>(Result.Ok(), operationName);
     }
 }

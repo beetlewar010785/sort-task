@@ -2,12 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using SortTask.Adapter;
 using SortTask.Application;
-using SortTask.Domain;
-using SortTask.Domain.RowGeneration;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -62,9 +57,6 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
         AnsiConsole.MarkupLine($"[yellow]Generating file:[/] {settings.FilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]File size:[/] {settings.FileSize} bytes");
 
-        var sc = BuildServiceCollection(settings.FilePath);
-        await using var serviceProvider = sc.BuildServiceProvider();
-
         AnsiConsole.MarkupLine("[green]Start generating test file.[/]");
 
         var sw = new Stopwatch();
@@ -81,8 +73,10 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                 eventArgs.Cancel = true;
             };
 
-            var fileRowFeeder = serviceProvider.GetRequiredService<FeedRowCommand>();
-            await fileRowFeeder.Execute(settings.FileSize, cts.Token);
+            using var compositionRoot = CompositionRoot.Build(settings.FilePath, settings.FileSize);
+
+            await compositionRoot.FeedRowCommand.Execute(new FeedRowCommand.Param(), cts.Token)
+                .ToListAsync(cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -94,36 +88,5 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
         return 0;
-    }
-
-    private static ServiceCollection BuildServiceCollection(string filePath)
-    {
-        const int maxRowNumber = 100_000;
-        const int maxWordsInSentence = 5;
-        const int repeatRowPeriod = 10;
-        const int maxRepeatNumber = 1;
-        const int refreshRepeatingRowsPeriod = 2;
-
-        var sc = new ServiceCollection();
-        sc.AddSingleton<Stream>(_ => File.Create(filePath))
-            .AddSingleton<Encoding>(_ => Encoding.UTF8)
-            .AddSingleton<Random>()
-            .AddSingleton<RandomRowGenerator>(
-                sp => new RandomRowGenerator(
-                    sp.GetRequiredService<Random>(),
-                    maxRowNumber: maxRowNumber,
-                    maxWordsInSentence: maxWordsInSentence))
-            .AddSingleton<IRowGenerator>(sp =>
-                new RowGenerationRepeater(
-                    sp.GetRequiredService<RandomRowGenerator>(),
-                    sp.GetRequiredService<Random>(),
-                    repeatPeriod: repeatRowPeriod,
-                    maxRepeatNumber: maxRepeatNumber,
-                    refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod))
-            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
-            .AddSingleton<IRowWriter, StreamRowWriter>()
-            .AddSingleton<FeedRowCommand>();
-
-        return sc;
     }
 }
