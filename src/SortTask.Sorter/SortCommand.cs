@@ -118,40 +118,60 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
     private static ServiceCollection BuildServiceCollection(string inputFilePath, string outputFilePath, int bTreeOrder)
     {
-        var sc = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
         var inputFile = File.OpenRead(inputFilePath);
         var outputFile = File.Create(outputFilePath);
 
-        sc.AddSingleton<Encoding>(_ => Encoding.UTF8)
+        serviceCollection.AddSingleton<Encoding>(_ => Encoding.UTF8)
             .AddSingleton(inputFile)
             .AddSingleton(outputFile)
             .AddSingleton(_ => new BTreeOrder(bTreeOrder))
-            .AddSingleton<IIndexer<MemoryBTreeIndex>,
-                BTreeIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>>()
             .AddSingleton<IComparer<ReadRow>, RowComparer>()
             .AddSingleton<IRowReader, StreamRowReader>(sp =>
                 new StreamRowReader(inputFile, sp.GetRequiredService<Encoding>()))
             .AddSingleton<IRowWriter, StreamRowWriter>(sp =>
                 new StreamRowWriter(outputFile, sp.GetRequiredService<Encoding>()))
-            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
-            .AddSingleton(sp => new SortRowsCommand<MemoryBTreeIndex>(
-                sp.GetRequiredService<IRowReader>(),
-                sp.GetRequiredService<IIndexer<MemoryBTreeIndex>>(),
-                sp.GetRequiredService<IIndexFactory<MemoryBTreeIndex>>(),
-                sp.GetRequiredService<IIndexTraverser<MemoryBTreeIndex>>(),
-                sp.GetRequiredService<IRowLookup<MemoryBTreeIndex>>(),
-                sp.GetRequiredService<IRowWriter>(),
-                sp.GetRequiredService<IProgressRenderer>(),
-                inputFile,
-                outputFile));
+            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth));
 
-        AddMemoryServices(sc);
+        AddBTreeServices<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(serviceCollection);
+        AddAppServices<MemoryBTreeIndex>(serviceCollection, inputFile, outputFile);
+        AddMemoryBTreeServices(serviceCollection);
 
-        return sc;
+        return serviceCollection;
     }
 
-    private static void AddMemoryServices(IServiceCollection serviceCollection)
+    private static void AddBTreeServices<TNode, TIndex, TNodeId>(ServiceCollection serviceCollection)
+        where TNode : IBTreeNode<TNode, TIndex, TNodeId>
+        where TIndex : IIndex
+    {
+        serviceCollection
+            .AddSingleton<IIndexer<TIndex>,
+                BTreeIndexer<TNode, TIndex, TNodeId>>();
+    }
+
+    private static void AddAppServices<TIndex>(
+        ServiceCollection serviceCollection,
+        Stream sourceStream,
+        Stream targetStream
+    )
+        where TIndex : IIndex
+    {
+        serviceCollection.AddSingleton(sp => new SortRowsCommand<TIndex>(
+                sp.GetRequiredService<IRowReader>(),
+                sp.GetRequiredService<IIndexer<TIndex>>(),
+                sp.GetRequiredService<IIndexFactory<TIndex>>(),
+                sp.GetRequiredService<IIndexTraverser<TIndex>>(),
+                sp.GetRequiredService<IRowLookup<TIndex>>(),
+                sp.GetRequiredService<IRowWriter>(),
+                sp.GetRequiredService<IProgressRenderer>(),
+                sourceStream,
+                targetStream
+            )
+        );
+    }
+
+    private static void AddMemoryBTreeServices(IServiceCollection serviceCollection)
     {
         serviceCollection
             .AddSingleton<IBTreeStore<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>,
