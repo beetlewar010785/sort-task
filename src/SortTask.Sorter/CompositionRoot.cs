@@ -1,9 +1,9 @@
 using SortTask.Adapter;
+using SortTask.Adapter.MemoryBTree;
 using SortTask.Application;
 using SortTask.Application.Decorators;
 using SortTask.Domain;
 using SortTask.Domain.BTree;
-using SortTask.Domain.BTree.Memory;
 
 namespace SortTask.Sorter;
 

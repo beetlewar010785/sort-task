@@ -1,4 +1,7 @@
-namespace SortTask.Domain.BTree.Memory;
+using SortTask.Domain;
+using SortTask.Domain.BTree;
+
+namespace SortTask.Adapter.MemoryBTree;
 
 public class MemoryBTreeIndexComparer(IComparer<ReadRow> rowComparer)
     : IBTreeIndexComparer<MemoryBTreeIndex>

@@ -1,5 +1,5 @@
+using SortTask.Adapter.MemoryBTree;
 using SortTask.Domain.BTree;
-using SortTask.Domain.BTree.Memory;
 using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Domain.Test.BTRee;

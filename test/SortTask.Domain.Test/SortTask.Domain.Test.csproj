@@ -23,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\src\SortTask.Adapter\SortTask.Adapter.csproj" />
       <ProjectReference Include="..\..\src\SortTask.Domain\SortTask.Domain.csproj" />
     </ItemGroup>
 

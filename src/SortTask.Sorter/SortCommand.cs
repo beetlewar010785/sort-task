@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
+using SortTask.Adapter.MemoryBTree;
 using SortTask.Application;
 using SortTask.Domain.BTree;
-using SortTask.Domain.BTree.Memory;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

@@ -1,4 +1,6 @@
-namespace SortTask.Domain.BTree.Memory;
+using SortTask.Domain.BTree;
+
+namespace SortTask.Adapter.MemoryBTree;
 
 public class MemoryBTreeNodeFactory
     : IBTreeNodeFactory<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>

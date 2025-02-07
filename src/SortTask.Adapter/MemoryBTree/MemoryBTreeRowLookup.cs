@@ -1,4 +1,6 @@
-namespace SortTask.Domain.BTree.Memory;
+using SortTask.Domain;
+
+namespace SortTask.Adapter.MemoryBTree;
 
 public class MemoryBTreeRowLookup : IRowLookup<MemoryBTreeIndex>
 {

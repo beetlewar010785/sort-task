@@ -1,4 +1,4 @@
-namespace SortTask.Domain.BTree.Memory;
+namespace SortTask.Adapter.MemoryBTree;
 
 public record MemoryBTreeNodeId(string Id)
 {
