@@ -1,6 +1,12 @@
 namespace SortTask.Domain.BTree.Memory;
 
-public record MemoryBTreeNodeId(Guid Id)
+public record MemoryBTreeNodeId(string Id)
 {
-    public static MemoryBTreeNodeId New() => new(Guid.NewGuid());
+    private static int _i = 0;
+
+    public static MemoryBTreeNodeId New()
+    {
+        _i++;
+        return new MemoryBTreeNodeId(_i.ToString());
+    }
 }

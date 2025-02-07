@@ -59,11 +59,13 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
             return 1;
         }
 
-        AnsiConsole.MarkupLine($"[green]Processing file:[/] {settings.FilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]Generating file:[/] {settings.FilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]File size:[/] {settings.FileSize} bytes");
 
         var sc = BuildServiceCollection(settings.FilePath);
         await using var serviceProvider = sc.BuildServiceProvider();
+
+        AnsiConsole.MarkupLine("[green]Start generating test file.[/]");
 
         var sw = new Stopwatch();
         sw.Start();
@@ -79,7 +81,6 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                 eventArgs.Cancel = true;
             };
 
-            // todo get required interface no class
             var fileRowFeeder = serviceProvider.GetRequiredService<FeedRowCommand>();
             await fileRowFeeder.Execute(settings.FileSize, cts.Token);
         }
@@ -102,7 +103,6 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
         const int repeatRowPeriod = 10;
         const int maxRepeatNumber = 1;
         const int refreshRepeatingRowsPeriod = 2;
-        const int progressBarWidth = 50;
 
         var sc = new ServiceCollection();
         sc.AddSingleton<Stream>(_ => File.Create(filePath))
@@ -120,7 +120,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
                     repeatPeriod: repeatRowPeriod,
                     maxRepeatNumber: maxRepeatNumber,
                     refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod))
-            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(progressBarWidth))
+            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
             .AddSingleton<IRowWriter, StreamRowWriter>()
             .AddSingleton<FeedRowCommand>();
 

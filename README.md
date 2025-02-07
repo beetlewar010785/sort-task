@@ -1,1 +1,1 @@
-# sort-task
+UNSORTED_FILE=~/tmp/unsorted SORTED_FILE=~/tmp/sorted BTREE_ORDER=10 FILE_SIZE=1073741824 make run

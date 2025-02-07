@@ -62,7 +62,7 @@ public class BTreeIndexValidator<TNode, TIndex, TNodeId>(
         var isRightLess = rowComparer.Compare(rightMinRow, currentRow);
         if (isRightLess < 0)
         {
-            throw new Exception($"Right riw {rightMinRow} is less than current {currentRow}.");
+            throw new Exception($"Right row {rightMinRow} is less than current {currentRow}.");
         }
     }
 

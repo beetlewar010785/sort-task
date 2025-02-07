@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace SortTask.Domain.BTree.Memory;
 
 public class MemoryBTreeStore

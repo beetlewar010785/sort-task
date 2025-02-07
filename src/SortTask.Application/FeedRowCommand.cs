@@ -30,7 +30,7 @@ public class FeedRowCommand(
                     await rowWriter.Flush(cancellationToken);
 
                     var progress = Math.Min(100 * targetStream.Position / (double)estimatedSize, 100);
-                    progressRenderer.Render((int)progress);
+                    progressRenderer.Render((int)progress, "Generating Test Data");
                 }
 
                 if (targetStream.Position >= estimatedSize)

@@ -6,8 +6,8 @@ public class MemoryBTreeNodeFactory
     public MemoryBTreeNode Create(
         MemoryBTreeNodeId id,
         MemoryBTreeNodeId? parentId,
-        BTreeNodeCollection<MemoryBTreeNodeId> children,
-        BTreeIndexCollection<MemoryBTreeIndex> indices
+        IReadOnlyList<MemoryBTreeNodeId> children,
+        IReadOnlyList<MemoryBTreeIndex> indices
     )
     {
         return new MemoryBTreeNode(

@@ -21,13 +21,17 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
     public class Settings : CommandSettings
     {
-        [CommandOption("-i|--file-in")]
-        [Description("Path to the intput file")]
+        [CommandOption("-u|--unsorted-file")]
+        [Description("Path to the intput unsorted file")]
         public string? InputFilePath { get; set; }
 
-        [CommandOption("-o|--file-out")]
-        [Description("Path to the output file")]
+        [CommandOption("-s|--sorted-file")]
+        [Description("Path to the output sorted file")]
         public string? OutputFilePath { get; set; }
+
+        [CommandOption("-o|--order")]
+        [Description("BTree order")]
+        public int BTreeOrder { get; set; }
 
         [CommandOption("-h|--help")]
         [Description("Show help message")]
@@ -36,39 +40,51 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        const string usageMessage = "Usage: sorter -i <input-file> -o <output-file>";
-        const int bTreeOrder = 1;
+        const string
+            usageMessage =
+                "Usage: sorter -u <unsorted-input-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
 
         if (settings.ShowHelp)
         {
             AnsiConsole.WriteLine(usageMessage);
             AnsiConsole.WriteLine("Options:");
-            AnsiConsole.WriteLine("  -i, --file-in   Path to the input file");
-            AnsiConsole.WriteLine("  -o, --file-out   Path to the output file");
-            AnsiConsole.WriteLine("  -h, --help   Show help message");
+            AnsiConsole.WriteLine("  -u, --unsorted-file  Path to the input unsorted file");
+            AnsiConsole.WriteLine("  -s, --sorted-file    Path to the output sorted file");
+            AnsiConsole.WriteLine("  -o, --order          BTree order");
+            AnsiConsole.WriteLine("  -h, --help           Show help message");
             return 0;
         }
 
         if (string.IsNullOrEmpty(settings.InputFilePath))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] Input file path is required. {usageMessage}");
+            AnsiConsole.MarkupLine($"[red]Error:[/] Input unsorted file path is required. {usageMessage}");
             return 1;
         }
 
         if (string.IsNullOrEmpty(settings.OutputFilePath))
         {
-            AnsiConsole.MarkupLine($"[red]Error:[/] Output file path is required. {usageMessage}");
+            AnsiConsole.MarkupLine($"[red]Error:[/] Output sorted file path is required. {usageMessage}");
             return 1;
         }
 
-        AnsiConsole.MarkupLine($"[green]Processing file:[/] {settings.InputFilePath.EscapeMarkup()}");
+        if (settings.BTreeOrder <= 0)
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] BTree order is required and must be > 0. {usageMessage}");
+            return 1;
+        }
+
+        AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.InputFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.OutputFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
         var sc = BuildServiceCollection(
-            inputFile: settings.InputFilePath,
-            outputFile: settings.OutputFilePath,
-            bTreeOrder: bTreeOrder
+            inputFilePath: settings.InputFilePath,
+            outputFilePath: settings.OutputFilePath,
+            bTreeOrder: settings.BTreeOrder
         );
         await using var serviceProvider = sc.BuildServiceProvider();
+
+        AnsiConsole.MarkupLine("[green]Start sorting.[/]");
 
         var sw = new Stopwatch();
         sw.Start();
@@ -84,7 +100,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            var fileRowFeeder = serviceProvider.GetRequiredService<ISortRowsCommand>();
+            var fileRowFeeder = serviceProvider.GetRequiredService<SortRowsCommand<MemoryBTreeIndex>>();
             await fileRowFeeder.Execute(cts.Token);
         }
         catch (OperationCanceledException)
@@ -100,20 +116,35 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         return 0;
     }
 
-    private static ServiceCollection BuildServiceCollection(string inputFile, string outputFile, int bTreeOrder)
+    private static ServiceCollection BuildServiceCollection(string inputFilePath, string outputFilePath, int bTreeOrder)
     {
         var sc = new ServiceCollection();
 
+        var inputFile = File.OpenRead(inputFilePath);
+        var outputFile = File.Create(outputFilePath);
+
         sc.AddSingleton<Encoding>(_ => Encoding.UTF8)
+            .AddSingleton(inputFile)
+            .AddSingleton(outputFile)
             .AddSingleton(_ => new BTreeOrder(bTreeOrder))
-            .AddSingleton<IIndexer<MemoryBTreeIndex>, BTreeIndexer<MemoryBTreeNode,
-                MemoryBTreeIndex, MemoryBTreeNodeId>>()
+            .AddSingleton<IIndexer<MemoryBTreeIndex>,
+                BTreeIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>>()
             .AddSingleton<IComparer<Row>, RowComparer>()
             .AddSingleton<IRowReader, StreamRowReader>(sp =>
-                new StreamRowReader(File.OpenRead(inputFile), sp.GetRequiredService<Encoding>()))
+                new StreamRowReader(inputFile, sp.GetRequiredService<Encoding>()))
             .AddSingleton<IRowWriter, StreamRowWriter>(sp =>
-                new StreamRowWriter(File.Create(outputFile), sp.GetRequiredService<Encoding>()))
-            .AddSingleton<ISortRowsCommand, SortRowsCommand<MemoryBTreeIndex>>();
+                new StreamRowWriter(outputFile, sp.GetRequiredService<Encoding>()))
+            .AddSingleton<IProgressRenderer>(_ => new ConsoleProgressRenderer(Const.ProgressBarWidth))
+            .AddSingleton(sp => new SortRowsCommand<MemoryBTreeIndex>(
+                sp.GetRequiredService<IRowReader>(),
+                sp.GetRequiredService<IIndexer<MemoryBTreeIndex>>(),
+                sp.GetRequiredService<IIndexFactory<MemoryBTreeIndex>>(),
+                sp.GetRequiredService<IIndexTraverser<MemoryBTreeIndex>>(),
+                sp.GetRequiredService<IRowLookup<MemoryBTreeIndex>>(),
+                sp.GetRequiredService<IRowWriter>(),
+                sp.GetRequiredService<IProgressRenderer>(),
+                inputFile,
+                outputFile));
 
         AddMemoryServices(sc);
 
