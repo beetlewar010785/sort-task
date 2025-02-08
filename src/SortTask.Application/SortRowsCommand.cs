@@ -21,7 +21,7 @@ public class SortRowsCommand<TIndex>(
         const string operationName = "Sorting...";
 
         var writtenRows = 0;
-        await foreach (var index in indexTraverser.Traverse().WithCancellation(cancellationToken))
+        await foreach (var index in indexTraverser.Traverse(cancellationToken))
         {
             var row = await rowLookup.FindRow(index, cancellationToken);
             await rowWriter.Write(row.ToWriteRow());

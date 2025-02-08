@@ -6,7 +6,6 @@ namespace SortTask.Domain.Test.BTRee;
 
 public class BTreeIndexerTests
 {
-    // todo cancellation token for tests
     [TestCaseSource(nameof(SortingCases))]
     public async Task Should_Build_Sorted_Index(TestCase testCase)
     {
@@ -22,13 +21,17 @@ public class BTreeIndexerTests
         );
 
         long position = 0;
+        await sut.Initialize(CancellationToken.None);
         foreach (var row in testCase.Rows)
         {
             await sut.Index(new MemoryBTreeIndex(row.ToReadRow(position++)), CancellationToken.None);
         }
 
         var traverser = new BTreeIndexTraverser<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(store);
-        var sortedNodes = await traverser.Traverse().ToListAsync(CancellationToken.None);
+        var sortedNodes = await traverser
+            .Traverse(CancellationToken.None)
+            .ToListAsync(CancellationToken.None);
+
         var sortedRows = sortedNodes.Select(n => n.Row.ToWriteRow()).ToList();
 
         var expectedSortedRows = testCase.Rows.OrderBy(r => r, rowComparer).ToList();
@@ -39,6 +42,7 @@ public class BTreeIndexerTests
     public async Task Store_Should_Be_Consistent(TestCase testCase)
     {
         var store = new MemoryBTreeStore();
+
         var rowComparer = new RowComparer();
         var indexComparer = new MemoryBTreeIndexComparer(rowComparer);
 
@@ -56,6 +60,7 @@ public class BTreeIndexerTests
         );
 
         long position = 0;
+        await indexer.Initialize(CancellationToken.None);
         foreach (var row in testCase.Rows)
         {
             await indexer.Index(new MemoryBTreeIndex(row.ToReadRow(position++)), CancellationToken.None);

@@ -2,52 +2,54 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.StreamBTree;
 
-public class StreamBTreeStore(Stream stream)
+public class StreamBTreeStore(Stream stream, BTreeOrder order)
     : IBTreeStore<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>
 {
-    private StreamBTreeNodeId? _rootId;
     private readonly Dictionary<StreamBTreeNodeId, StreamBTreeNode> _nodes = [];
+    private readonly StreamBTreeNodeReadWriter _nodeReadWriter = new StreamBTreeNodeReadWriter(stream, order);
 
-    public Task<StreamBTreeNodeId> AllocateId()
+    public Task Initialize(CancellationToken cancellationToken)
     {
-        return Task.FromResult(new StreamBTreeNodeId(stream.Position));
+        return _nodeReadWriter.WriteHeader(new StreamBTreeHeader(0, null), cancellationToken);
     }
 
-    public async Task<StreamBTreeNode?> GetRoot()
+    public async Task<StreamBTreeNodeId> AllocateId(CancellationToken cancellationToken)
     {
-        if (_rootId == null)
-        {
-            return null;
-        }
+        var header = await _nodeReadWriter.ReadHeader(cancellationToken);
+        var newNodePosition = _nodeReadWriter.CalculateNodePosition(header.NumNodes + 1);
 
-        return await GetNode(_rootId);
+        var emptyNode = new StreamBTreeNode(
+            new StreamBTreeNodeId(newNodePosition),
+            null,
+            [],
+            []
+        );
+        await SaveNode(emptyNode, cancellationToken);
+
+        return emptyNode.Id;
     }
 
-    public Task SetRoot(StreamBTreeNodeId id)
+    public async Task<StreamBTreeNode?> GetRoot(CancellationToken cancellationToken)
     {
-        _rootId = id;
-        return Task.CompletedTask;
+        var header = await _nodeReadWriter.ReadHeader(cancellationToken);
+        return header.Root == null ? null : await GetNode(header.Root, cancellationToken);
     }
 
-    public Task<StreamBTreeNode> GetNode(StreamBTreeNodeId id)
+    public async Task SetRoot(StreamBTreeNodeId id, CancellationToken cancellationToken)
     {
-        return Task.FromResult(_nodes[id]);
+        var header = await _nodeReadWriter.ReadHeader(cancellationToken);
+        await _nodeReadWriter.WriteHeader(header.SetRoot(id), cancellationToken);
     }
 
-    public Task SaveNode(StreamBTreeNode node)
+    public Task<StreamBTreeNode> GetNode(StreamBTreeNodeId id, CancellationToken cancellationToken)
     {
-        _nodes[node.Id] = node;
-        return Task.CompletedTask;
+        return _nodeReadWriter.ReadNode(id, cancellationToken);
     }
 
-    private async Task WriteNode(StreamBTreeNode node)
+    public async Task SaveNode(StreamBTreeNode node, CancellationToken cancellationToken)
     {
-        stream.Position = node.Id.Position;
-        await WriteNodeId(node.Id);
-        await WriteNodeId(node.ParentId);
-    }
-
-    private async Task WriteNodeId(StreamBTreeNodeId? id)
-    {
+        await _nodeReadWriter.WriteNode(node, cancellationToken);
+        var header = await _nodeReadWriter.ReadHeader(cancellationToken);
+        await _nodeReadWriter.WriteHeader(header.IncrementNodes(), cancellationToken);
     }
 }

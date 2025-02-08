@@ -9,12 +9,31 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
+    private bool _initizlied;
+
+    public async Task Initialize(CancellationToken cancellationToken)
+    {
+        if (_initizlied)
+        {
+            throw new InvalidOperationException("Already initialized.");
+        }
+
+        await store.Initialize(cancellationToken);
+
+        _initizlied = true;
+    }
+
     public async Task Index(TIndex index, CancellationToken cancellationToken)
     {
-        var root = await store.GetRoot();
+        if (!_initizlied)
+        {
+            throw new InvalidOperationException("Not initialized.");
+        }
+
+        var root = await store.GetRoot(cancellationToken);
         if (root == null)
         {
-            await CreateNewRoot(index, []);
+            await CreateNewRoot(index, [], cancellationToken);
             return;
         }
 
@@ -32,7 +51,7 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             targetNode.Children,
             newIndices
         );
-        await store.SaveNode(targetNode);
+        await store.SaveNode(targetNode, cancellationToken);
         await CheckOverflow(targetNode, cancellationToken);
     }
 
@@ -44,12 +63,12 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         }
 
         var splitResult = SplitNode(node);
-        var rightNodeId = await store.AllocateId();
+        var rightNodeId = await store.AllocateId(cancellationToken);
 
         TNode? parent = default;
         if (node.ParentId != null)
         {
-            parent = await store.GetNode(node.ParentId);
+            parent = await store.GetNode(node.ParentId, cancellationToken);
         }
 
         if (parent == null)
@@ -58,7 +77,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             // then we need to assign new root
             parent = await CreateNewRoot(
                 splitResult.PopupIndex,
-                [node.Id, rightNodeId]
+                [node.Id, rightNodeId],
+                cancellationToken
             );
         }
         else
@@ -77,7 +97,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             newParentId: parent.Id,
             newChildren: splitResult.LeftChildren,
             newIndices: splitResult.LeftIndices,
-            childrenParentIdChanged: false
+            childrenParentIdChanged: false,
+            cancellationToken
         );
 
         await CreateOrUpdateNode(
@@ -85,7 +106,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             newParentId: parent.Id,
             newChildren: splitResult.RightChildren,
             newIndices: splitResult.RightIndices,
-            childrenParentIdChanged: true
+            childrenParentIdChanged: true,
+            cancellationToken
         );
 
         // repeat recursively until we reach the root or find a node that is not overflowed
@@ -128,22 +150,23 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             newChildren,
             newIndices
         );
-        await store.SaveNode(parent);
+        await store.SaveNode(parent, cancellationToken);
 
         return parent;
     }
 
-    private async Task<TNode> CreateNewRoot(TIndex index, IReadOnlyList<TNodeId> children)
+    private async Task<TNode> CreateNewRoot(TIndex index, IReadOnlyList<TNodeId> children,
+        CancellationToken cancellationToken)
     {
-        var parentId = await store.AllocateId();
+        var parentId = await store.AllocateId(cancellationToken);
         var parent = nodeFactory.Create(
             parentId,
             default,
             children,
             [index]
         );
-        await store.SaveNode(parent);
-        await store.SetRoot(parent.Id);
+        await store.SaveNode(parent, cancellationToken);
+        await store.SetRoot(parent.Id, cancellationToken);
         return parent;
     }
 
@@ -152,7 +175,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
         TNodeId newParentId,
         IReadOnlyList<TNodeId> newChildren,
         IReadOnlyList<TIndex> newIndices,
-        bool childrenParentIdChanged
+        bool childrenParentIdChanged,
+        CancellationToken cancellationToken
     )
     {
         var node = nodeFactory.Create(
@@ -161,26 +185,28 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             newChildren,
             newIndices
         );
-        await store.SaveNode(node);
+        await store.SaveNode(node, cancellationToken);
 
         if (childrenParentIdChanged)
         {
             // change parent id of the children     to this node's id
             foreach (var childId in newChildren)
             {
-                var child = await store.GetNode(childId);
+                var child = await store.GetNode(childId, cancellationToken);
                 child = nodeFactory.Create(
                     child.Id,
                     nodeId,
                     child.Children,
                     child.Indices
                 );
-                await store.SaveNode(child);
+                await store.SaveNode(child, cancellationToken);
             }
         }
     }
 
-    private async Task<FindTargetResult> FindTarget(TIndex insertingIndex, TNode searchInNode,
+    private async Task<FindTargetResult> FindTarget(
+        TIndex insertingIndex,
+        TNode searchInNode,
         CancellationToken cancellationToken)
     {
         if (searchInNode.Children.Count == 0)
@@ -197,14 +223,14 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
             if (indexCompareResult <= 0)
             {
                 var nodeId = searchInNode.Children[i];
-                var node = await store.GetNode(nodeId);
+                var node = await store.GetNode(nodeId, cancellationToken);
                 return await FindTarget(insertingIndex, node, cancellationToken);
             }
         }
 
         // our index is the greatest in the node, search in the rightmost child 
         var latestNodeId = searchInNode.Children[^1];
-        var latestNode = await store.GetNode(latestNodeId);
+        var latestNode = await store.GetNode(latestNodeId, cancellationToken);
         return await FindTarget(insertingIndex, latestNode, cancellationToken);
     }
 
