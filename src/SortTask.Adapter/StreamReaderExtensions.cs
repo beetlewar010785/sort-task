@@ -6,9 +6,10 @@ public static class StreamReaderExtensions
 {
     public static async Task<ReadRow> DeserializeRow(
         this StreamReader streamReader,
+        long position,
         CancellationToken cancellationToken)
     {
-        var position = streamReader.BaseStream.Position;
+        streamReader.BaseStream.Position = position;
         var line = await streamReader.ReadLineAsync(cancellationToken) ?? throw new Exception("End of stream");
 
         var splitterIndex = line.IndexOf(AdapterConst.RowFieldsSplitter, StringComparison.Ordinal);

@@ -4,7 +4,6 @@ public interface IBTreeStore<TNode, TIndex, TNodeId>
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
-    Task Initialize(CancellationToken cancellationToken);
     Task<TNodeId> AllocateId(CancellationToken cancellationToken);
     Task<TNode?> GetRoot(CancellationToken cancellationToken);
     Task SetRoot(TNodeId id, CancellationToken cancellationToken);

@@ -8,11 +8,6 @@ public class MemoryBTreeStore
     private MemoryBTreeNodeId? _rootId;
     private readonly Dictionary<MemoryBTreeNodeId, MemoryBTreeNode> _nodes = [];
 
-    public Task Initialize(CancellationToken _)
-    {
-        return Task.CompletedTask;
-    }
-
     public Task<MemoryBTreeNodeId> AllocateId(CancellationToken _)
     {
         return Task.FromResult(MemoryBTreeNodeId.New());

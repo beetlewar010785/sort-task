@@ -33,4 +33,35 @@ public class StreamRowReadWriterTests
             .ToList();
         Assert.That(actualRows, Is.EqualTo(initialRows));
     }
+
+    [Test]
+    public async Task Should_Read_Written_Rows()
+    {
+        await using var ms = new MemoryStream();
+        var sut = new StreamRowReadWriter(ms);
+
+        var rows = new[]
+        {
+            new WriteRow(12, "sentence 1"),
+            new WriteRow(234, "sentence 2"),
+            new WriteRow(3456, "sentence 3")
+        };
+
+        foreach (var row in rows)
+        {
+            await sut.Write(row, CancellationToken.None);
+        }
+
+        var rowsWithOffset = await sut.ReadAsAsyncEnumerable(CancellationToken.None)
+            .ToListAsync();
+
+        var rowsByOffsetAndLength = await Task.WhenAll(rowsWithOffset
+            .Select(r => sut.ReadAt(r.Offset, r.Length, CancellationToken.None)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rowsWithOffset.Select(r => r.Row), Is.EqualTo(rows));
+            Assert.That(rowsByOffsetAndLength, Is.EqualTo(rows));
+        });
+    }
 }

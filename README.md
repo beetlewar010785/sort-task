@@ -1,1 +1,1 @@
-UNSORTED_FILE=~/tmp/unsorted SORTED_FILE=~/tmp/sorted BTREE_ORDER=10 FILE_SIZE=107374182 make run
+UNSORTED_FILE=~/tmp/unsorted INDEX_FILE=~/tmp/index SORTED_FILE=~/tmp/sorted BTREE_ORDER=10 FILE_SIZE=107374182 make run

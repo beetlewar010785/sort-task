@@ -2,13 +2,10 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter.StreamBTree;
 
-public class StreamBTreeRowLookup(Stream stream) : IRowLookup<StreamBTreeIndex>
+public class StreamBTreeRowLookup(StreamReader streamReader) : IRowLookup<StreamBTreeIndex>
 {
-    private readonly StreamReader _streamReader = new(stream, leaveOpen: true);
-
     public Task<ReadRow> FindRow(StreamBTreeIndex index, CancellationToken cancellationToken)
     {
-        stream.Position = index.RowPosition;
-        return _streamReader.DeserializeRow(cancellationToken);
+        return streamReader.DeserializeRow(index.RowPosition, cancellationToken);
     }
 }

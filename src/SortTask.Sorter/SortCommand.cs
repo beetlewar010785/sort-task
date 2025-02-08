@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using SortTask.Adapter.MemoryBTree;
+using SortTask.Adapter.StreamBTree;
 using SortTask.Application;
 using SortTask.Domain.BTree;
 using Spectre.Console;
@@ -18,8 +18,12 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     public class Settings : CommandSettings
     {
         [CommandOption("-u|--unsorted-file")]
-        [Description("Path to the intput unsorted file")]
+        [Description("Path to the input unsorted file")]
         public string? InputFilePath { get; set; }
+
+        [CommandOption("-x|--index-file")]
+        [Description("Path to the index file")]
+        public string? IndexFilePath { get; set; }
 
         [CommandOption("-s|--sorted-file")]
         [Description("Path to the output sorted file")]
@@ -38,13 +42,14 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     {
         const string
             usageMessage =
-                "Usage: sorter -u <unsorted-input-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
+                "Usage: sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
 
         if (settings.ShowHelp)
         {
             AnsiConsole.WriteLine(usageMessage);
             AnsiConsole.WriteLine("Options:");
             AnsiConsole.WriteLine("  -u, --unsorted-file  Path to the input unsorted file");
+            AnsiConsole.WriteLine("  -x, --index-file     Path to the index file");
             AnsiConsole.WriteLine("  -s, --sorted-file    Path to the output sorted file");
             AnsiConsole.WriteLine("  -o, --order          BTree order");
             AnsiConsole.WriteLine("  -h, --help           Show help message");
@@ -54,6 +59,12 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         if (string.IsNullOrEmpty(settings.InputFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Input unsorted file path is required. {usageMessage}");
+            return 1;
+        }
+
+        if (string.IsNullOrEmpty(settings.IndexFilePath))
+        {
+            AnsiConsole.MarkupLine($"[red]Error:[/] Index file path is required. {usageMessage}");
             return 1;
         }
 
@@ -91,13 +102,14 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
             using var compositionRoot = CompositionRoot.Build(
                 inputFilePath: settings.InputFilePath,
+                indexFilePath: settings.IndexFilePath,
                 outputFilePath: settings.OutputFilePath,
                 order: new BTreeOrder(settings.BTreeOrder));
 
-            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand<MemoryBTreeIndex>.Param(), cts.Token)
+            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand<StreamBTreeIndex>.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);
 
-            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<MemoryBTreeIndex>.Param(), cts.Token)
+            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<StreamBTreeIndex>.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);
         }
         catch (OperationCanceledException)

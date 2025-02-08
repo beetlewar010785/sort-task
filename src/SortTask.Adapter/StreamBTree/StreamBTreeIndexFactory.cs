@@ -1,9 +1,8 @@
-using SortTask.Adapter.MemoryBTree;
 using SortTask.Domain;
 
 namespace SortTask.Adapter.StreamBTree;
 
-public class StreamBTreeIndexFactory : IIndexFactory<MemoryBTreeIndex>
+public class StreamBTreeIndexFactory : IIndexFactory<StreamBTreeIndex>
 {
-    public MemoryBTreeIndex CreateIndexFromRow(ReadRow row) => new(row);
+    public StreamBTreeIndex CreateIndexFromRow(ReadRow row) => new(row.Position);
 }

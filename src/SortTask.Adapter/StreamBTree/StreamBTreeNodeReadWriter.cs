@@ -10,19 +10,24 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
                             sizeof(long) * order.MaxIndices + // Indices
                             sizeof(long) * order.MaxChildren; // Children;
 
-    private int HeaderSize => sizeof(long) + // RootId
-                              sizeof(long); // NumNodes
+    private static int HeaderSize => sizeof(long) + // RootId
+                                     sizeof(long); // NumNodes
 
-    public long CalculateNodePosition(long nodeNumber)
+    /// <summary>
+    /// Calculates position in the stream where the node with the specified nodeIndex should be inserted
+    /// </summary>
+    /// <param name="nodeIndex"></param>
+    /// <returns></returns>
+    public long CalculateNodePosition(long nodeIndex)
     {
-        return HeaderSize + nodeNumber * NodeSize;
+        return HeaderSize + nodeIndex * NodeSize;
     }
 
     public async Task<StreamBTreeHeader> ReadHeader(CancellationToken cancellationToken)
     {
         stream.Position = 0;
         var buf = new byte[HeaderSize];
-        await ReadExactAsync(buf, cancellationToken);
+        await stream.ReadExactAsync(buf, cancellationToken);
 
         var (numNodes, position) = ReadLong(buf, 0);
         var (rootId, _) = ReadLong(buf, position);
@@ -30,34 +35,22 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         return new StreamBTreeHeader(numNodes, StreamBTreeNodeId.FromValue(rootId));
     }
 
-    public Task WriteHeader(StreamBTreeHeader header, CancellationToken cancellationToken)
+    public async Task WriteHeader(StreamBTreeHeader header, CancellationToken cancellationToken)
     {
         var buf = new byte[HeaderSize];
         var position = WriteLong(header.NumNodes, buf, 0);
         WriteLong(StreamBTreeNodeId.ToValue(header.Root), buf, position);
 
         stream.Position = 0;
-        return stream.WriteAsync(buf, 0, buf.Length, cancellationToken);
-    }
-
-    public Task WriteNode(StreamBTreeNode node, CancellationToken cancellationToken)
-    {
-        var buf = new byte[NodeSize];
-        var position = WriteLong(StreamBTreeNodeId.ToValue(node.ParentId), buf, 0);
-        position = WriteInt(node.Indices.Count, buf, position);
-        position = WriteInt(node.Children.Count, buf, position);
-        position = WriteIndices(node.Indices, buf, position);
-        WriteChildren(node.Children, buf, position);
-
-        stream.Position = node.Id.Position;
-        return stream.WriteAsync(buf, 0, buf.Length, cancellationToken);
+        await stream.WriteAsync(buf, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
     }
 
     public async Task<StreamBTreeNode> ReadNode(StreamBTreeNodeId id, CancellationToken cancellationToken)
     {
         stream.Position = id.Position;
         var buf = new byte[NodeSize];
-        await ReadExactAsync(buf, cancellationToken);
+        await stream.ReadExactAsync(buf, cancellationToken);
         var position = 0;
         (var parentId, position) = ReadLong(buf, position);
         (var numIndices, position) = ReadInt(buf, position);
@@ -71,6 +64,20 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
             children,
             indices
         );
+    }
+
+    public async Task WriteNode(StreamBTreeNode node, CancellationToken cancellationToken)
+    {
+        var buf = new byte[NodeSize];
+        var position = WriteLong(StreamBTreeNodeId.ToValue(node.ParentId), buf, 0);
+        position = WriteInt(node.Indices.Count, buf, position);
+        position = WriteInt(node.Children.Count, buf, position);
+        position = WriteIndices(node.Indices, buf, position);
+        WriteChildren(node.Children, buf, position);
+
+        stream.Position = node.Id.Position;
+        await stream.WriteAsync(buf, cancellationToken);
+        await stream.FlushAsync(cancellationToken);
     }
 
     private int WriteLong(long value, Span<byte> target, int position)
@@ -146,22 +153,5 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         }
 
         return children;
-    }
-
-    private async Task ReadExactAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-    {
-        var totalRead = 0;
-
-        while (totalRead < buffer.Length)
-        {
-            var bytesRead = await stream.ReadAsync(buffer[totalRead..], cancellationToken);
-
-            if (bytesRead == 0)
-            {
-                throw new EndOfStreamException("Unexpected end of stream.");
-            }
-
-            totalRead += bytesRead;
-        }
     }
 }

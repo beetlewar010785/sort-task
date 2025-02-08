@@ -9,27 +9,8 @@ public class BTreeIndexer<TNode, TIndex, TNodeId>(
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
-    private bool _initizlied;
-
-    public async Task Initialize(CancellationToken cancellationToken)
-    {
-        if (_initizlied)
-        {
-            throw new InvalidOperationException("Already initialized.");
-        }
-
-        await store.Initialize(cancellationToken);
-
-        _initizlied = true;
-    }
-
     public async Task Index(TIndex index, CancellationToken cancellationToken)
     {
-        if (!_initizlied)
-        {
-            throw new InvalidOperationException("Not initialized.");
-        }
-
         var root = await store.GetRoot(cancellationToken);
         if (root == null)
         {

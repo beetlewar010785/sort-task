@@ -1,6 +1,6 @@
 namespace SortTask.Domain;
 
-public readonly struct ReadRow(int number, string sentence, long position)
+public readonly record struct ReadRow(int number, string sentence, long position)
 {
     public int Number => number;
     public string Sentence => sentence;

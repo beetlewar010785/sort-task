@@ -20,8 +20,6 @@ public class BuildIndexCommand<TIndex>(
     {
         const string operationName = "Building Index...";
 
-        await indexer.Initialize(cancellationToken);
-
         await foreach (var row in rowReader.ReadAsAsyncEnumerable(cancellationToken))
         {
             var index = indexFactory.CreateIndexFromRow(row);
