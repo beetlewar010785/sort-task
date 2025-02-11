@@ -2,4 +2,4 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter.StreamBTree;
 
-public record StreamBTreeIndex(long RowOffset, long RowLength) : IIndex;
+public record StreamBTreeIndex(OphULong SentenceOph, long RowOffset, long RowLength) : IIndex;

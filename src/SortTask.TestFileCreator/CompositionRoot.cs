@@ -15,13 +15,13 @@ public class CompositionRoot(
     {
         const int maxRowNumber = 100_000;
         const int maxWordsInSentence = 5;
-        const int repeatRowPeriod = 10;
+        const int repeatRowPeriod = 1000;
         const int maxRepeatNumber = 2;
         const int refreshRepeatingRowsPeriod = 2;
 
         var file = File.Create(filePath);
 
-        var rowWriter = new StreamRowReadWriter(file);
+        var rowWriter = new StreamRowReadWriter(file, AdapterConst.Encoding);
 
         var rnd = new Random();
         var rowGenerator = new RowGenerationRepeater(

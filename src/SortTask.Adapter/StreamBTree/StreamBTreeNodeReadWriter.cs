@@ -1,14 +1,17 @@
+using SortTask.Domain;
 using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.StreamBTree;
 
 public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
 {
-    private int NodeSize => sizeof(long) + // ParentId
-                            sizeof(int) + // NumIndices
-                            sizeof(int) + // NumChildren
-                            (sizeof(long) + sizeof(long)) * order.MaxIndices + // Indices
-                            sizeof(long) * order.MaxChildren; // Children;
+    // move to struct?
+    private int NodeSize =>
+        sizeof(long) + // ParentId
+        sizeof(int) + // NumIndices
+        sizeof(int) + // NumChildren
+        (sizeof(long) + sizeof(long) + sizeof(ulong)) * order.MaxIndices + // Indices
+        sizeof(long) * order.MaxChildren; // Children;
 
     private static int HeaderSize => sizeof(long) + // RootId
                                      sizeof(long); // NumNodes
@@ -80,40 +83,11 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         await stream.FlushAsync(cancellationToken);
     }
 
-    private int WriteLong(long value, Span<byte> target, int position)
-    {
-        if (!BitConverter.TryWriteBytes(target[position..], value))
-        {
-            throw new Exception("Failed to write long.");
-        }
-
-        return position + sizeof(long);
-    }
-
-    private static (long, int) ReadLong(ReadOnlySpan<byte> buf, int position)
-    {
-        return (BitConverter.ToInt64(buf[position..]), position + sizeof(long));
-    }
-
-    private int WriteInt(int count, Span<byte> target, int position)
-    {
-        if (!BitConverter.TryWriteBytes(target[position..], count))
-        {
-            throw new Exception("Failed to write int.");
-        }
-
-        return position + sizeof(int);
-    }
-
-    private static (int, int) ReadInt(ReadOnlySpan<byte> buf, int position)
-    {
-        return (BitConverter.ToInt32(buf[position..]), position + sizeof(int));
-    }
-
     private int WriteIndices(IReadOnlyList<StreamBTreeIndex> indices, Span<byte> target, int position)
     {
         foreach (var index in indices)
         {
+            position = WriteULong(index.SentenceOph.Value, target, position);
             position = WriteLong(index.RowOffset, target, position);
             position = WriteLong(index.RowLength, target, position);
         }
@@ -121,15 +95,18 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         return position;
     }
 
-    private static (IReadOnlyList<StreamBTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
+    private (IReadOnlyList<StreamBTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
     {
         var indices = new List<StreamBTreeIndex>();
 
         for (var i = 0; i < count; i++)
         {
+            (var sentenceOph, position) = ReadULong(buf, position);
             (var rowOffset, position) = ReadLong(buf, position);
             (var rowLength, position) = ReadLong(buf, position);
-            indices.Add(new StreamBTreeIndex(rowOffset, rowLength));
+
+            var index = new StreamBTreeIndex(new OphULong(sentenceOph), rowOffset, rowLength);
+            indices.Add(index);
         }
 
         return (indices, position);
@@ -156,5 +133,50 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         }
 
         return children;
+    }
+
+    private static int WriteLong(long value, Span<byte> target, int position)
+    {
+        if (!BitConverter.TryWriteBytes(target[position..], value))
+        {
+            throw new Exception("Failed to write long.");
+        }
+
+        return position + sizeof(long);
+    }
+
+    private static (long, int) ReadLong(ReadOnlySpan<byte> buf, int position)
+    {
+        return (BitConverter.ToInt64(buf[position..]), position + sizeof(long));
+    }
+
+    private static int WriteULong(ulong value, Span<byte> target, int position)
+    {
+        if (!BitConverter.TryWriteBytes(target[position..], value))
+        {
+            throw new Exception("Failed to write ulong.");
+        }
+
+        return position + sizeof(ulong);
+    }
+
+    private static (ulong, int) ReadULong(ReadOnlySpan<byte> buf, int position)
+    {
+        return (BitConverter.ToUInt64(buf[position..]), position + sizeof(ulong));
+    }
+
+    private static int WriteInt(int count, Span<byte> target, int position)
+    {
+        if (!BitConverter.TryWriteBytes(target[position..], count))
+        {
+            throw new Exception("Failed to write int.");
+        }
+
+        return position + sizeof(int);
+    }
+
+    private static (int, int) ReadInt(ReadOnlySpan<byte> buf, int position)
+    {
+        return (BitConverter.ToInt32(buf[position..]), position + sizeof(int));
     }
 }

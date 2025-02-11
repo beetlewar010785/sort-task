@@ -1,3 +1,4 @@
+using System.Text;
 using SortTask.Adapter;
 using SortTask.Adapter.StreamBTree;
 using SortTask.Domain.BTree;
@@ -12,7 +13,7 @@ public class BTreeIndexerTests
     {
         // Prepare incoming rows - move them from array to the stream.
         using var unsortedRowStream = new MemoryStream();
-        var unsortedStreamRowReadWriter = new StreamRowReadWriter(unsortedRowStream);
+        var unsortedStreamRowReadWriter = new StreamRowReadWriter(unsortedRowStream, testCase.Encoding);
         foreach (var row in testCase.Rows)
         {
             await unsortedStreamRowReadWriter.Write(row, CancellationToken.None);
@@ -23,24 +24,27 @@ public class BTreeIndexerTests
         using var indexStream = new MemoryStream();
         var rowComparer = new RowComparer();
         var rowLookup = new StreamBTreeRowLookup(unsortedStreamRowReadWriter);
-        var indexComparer = new StreamBTreeIndexComparer(rowComparer, rowLookup);
+        var indexComparer = new StreamBTreeIndexComparer(new BigEndianStringOphComparer(), rowComparer, rowLookup);
+        var nodeFactory = new StreamBTreeNodeFactory();
+        var stringOph = new StringOph(testCase.Encoding);
+        var indexFactory = new StreamBTreeIndexFactory(stringOph);
         var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter(indexStream, testCase.Order);
         var store = new StreamBTreeStore(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
         var sut = new BTreeIndexer<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(
             store,
-            new StreamBTreeNodeFactory(),
+            nodeFactory,
             indexComparer,
             testCase.Order
         );
 
         await using var iterationStream = new MemoryStream(unsortedRowStream.ToArray());
-        var iterationRowReadWriter = new StreamRowReadWriter(iterationStream);
+        var iterationRowReadWriter = new StreamRowReadWriter(iterationStream, testCase.Encoding);
         await iterationRowReadWriter
             .ReadAsAsyncEnumerable(CancellationToken.None)
             .ForEachAwaitAsync(async row => await sut.Index(
-                new StreamBTreeIndex(row.Offset, row.Length),
+                indexFactory.CreateIndexFromRow(row.Row, row.Offset, row.Length),
                 CancellationToken.None));
 
         var traverser = new BTreeIndexTraverser<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(store);
@@ -83,11 +87,11 @@ public class BTreeIndexerTests
     //     Assert.DoesNotThrowAsync(() => sut.Validate(CancellationToken.None));
     // }
 
-    public record TestCase(IList<Row> Rows, BTreeOrder Order);
+    public record TestCase(IList<Row> Rows, BTreeOrder Order, Encoding Encoding);
 
     private static IEnumerable<TestCaseData> SortingCases()
     {
-        yield return new TestCaseData(new TestCase([], new BTreeOrder(1)))
+        yield return new TestCaseData(new TestCase([], new BTreeOrder(1), Encoding.UTF8))
             .SetName("No rows");
 
         yield return new TestCaseData(new TestCase(
@@ -122,7 +126,8 @@ public class BTreeIndexerTests
                     new Row(88794, "Incredible Plastic Salad Zimbabwe one-to-one"),
                     new Row(38680, "Djibouti Franc Money Market Account")
                 ],
-                new BTreeOrder(2)))
+                new BTreeOrder(2),
+                Encoding.UTF8))
             .SetName("Predefined rows");
 
 
@@ -132,7 +137,8 @@ public class BTreeIndexerTests
                     .Range(0, 1000)
                     .SelectMany(_ => rowGenerator.Generate())
                     .ToList(),
-                new BTreeOrder(10))
+                new BTreeOrder(10),
+                Encoding.UTF8)
             )
             .SetName("Random rows");
     }

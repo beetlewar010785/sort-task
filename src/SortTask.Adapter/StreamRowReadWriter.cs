@@ -1,13 +1,14 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReadWriter(Stream stream) : IRowReadWriter, IRowIterator
+public class StreamRowReadWriter(Stream stream, Encoding encoding) : IRowReadWriter, IRowIterator
 {
     public async Task Write(Row row, CancellationToken cancellationToken)
     {
-        var bytes = AdapterConst.Encoding.GetBytes(SerializeRow(row));
+        var bytes = encoding.GetBytes(SerializeRow(row));
         await stream.WriteAsync(bytes, cancellationToken);
     }
 
@@ -22,14 +23,14 @@ public class StreamRowReadWriter(Stream stream) : IRowReadWriter, IRowIterator
         var buf = new byte[length];
         stream.Position = offset;
         await stream.ReadExactAsync(buf, cancellationToken);
-        var rowString = AdapterConst.Encoding.GetString(buf);
+        var rowString = encoding.GetString(buf);
         return DeserializeRow(rowString);
     }
 
     public async IAsyncEnumerable<RowWithOffset> ReadAsAsyncEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        using var reader = new BufferedStreamReader(stream, AdapterConst.Encoding);
+        using var reader = new BufferedStreamReader(stream, encoding);
         while (await reader.ReadLine(cancellationToken) is { } result)
         {
             var row = DeserializeRow(result.Line);

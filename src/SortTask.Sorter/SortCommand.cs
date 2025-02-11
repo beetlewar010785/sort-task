@@ -116,6 +116,12 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
             await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<StreamBTreeIndex>.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Index collision number: [/] {compositionRoot.CollisionDetector.CollisionNumber}");
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Row lookup number: [/] {compositionRoot.RowLookupCounter.Count}");
         }
         catch (OperationCanceledException)
         {
