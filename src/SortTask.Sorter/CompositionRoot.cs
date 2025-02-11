@@ -45,7 +45,14 @@ public class CompositionRoot(
 
         var unsortedFile = File.OpenRead(unsortedFilePath);
         var unsortedReadWriter = new StreamRowReadWriter(unsortedFile, AdapterConst.Encoding);
-        var lookup = new RowLookupCounter<StreamBTreeIndex>(new StreamBTreeRowLookup(unsortedReadWriter));
+
+        var rowLookup = new StreamBTreeRowLookup(unsortedReadWriter);
+        var lookupCounter = new RowLookupCounter<StreamBTreeIndex>(rowLookup);
+        var lookup = new RowLookupCache<StreamBTreeIndex>(
+            lookupCounter,
+            new StreamBTreeIndexEqualityComparer(),
+            AdapterConst.RowLookupCacheCapacity);
+
         var ophCollisionDetector = new OphCollisionDetector(new BigEndianStringOphComparer());
         var indexer = new BTreeIndexer<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(
             store,
@@ -74,7 +81,7 @@ public class CompositionRoot(
             buildIndexCommand,
             sortRowsCommand,
             ophCollisionDetector,
-            lookup,
+            lookupCounter,
             [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile],
             [store]);
     }
