@@ -8,9 +8,9 @@ public class RowGenerationRepeater(
     int refreshRepeatingRowsPeriod
 ) : IRowGenerator
 {
-    private readonly List<WriteRow> _repeatingRows = [];
+    private readonly List<Row> _repeatingRows = [];
 
-    public IEnumerable<WriteRow> Generate()
+    public IEnumerable<Row> Generate()
     {
         var rows = inner.Generate().ToList();
         var repeatValue = rnd.Next(1, repeatPeriod);

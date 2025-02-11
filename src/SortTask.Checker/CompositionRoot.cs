@@ -15,15 +15,14 @@ public class CompositionRoot(
     {
         var file = File.OpenRead(filePath);
 
-        var streamReader = new StreamReader(file, AdapterConst.Encoding, leaveOpen: true);
-        var rowReader = new StreamRowReader(streamReader);
+        var rowIterator = new StreamRowReadWriter(file);
         var command = new CheckSortCommand(
-                rowReader,
+                rowIterator,
                 new RowComparer())
             .DecorateWithStreamLength(file)
             .DecorateWithProgressRender(new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth));
 
-        return new CompositionRoot(command, [streamReader, file]);
+        return new CompositionRoot(command, [file]);
     }
 
     public void Dispose()

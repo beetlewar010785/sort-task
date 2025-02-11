@@ -5,7 +5,7 @@ namespace SortTask.Application;
 
 public class BuildIndexCommand<TIndex>(
     IIndexFactory<TIndex> indexFactory,
-    IRowReader rowReader,
+    IRowIterator rowIterator,
     IIndexer<TIndex> indexer
 ) : ICommand<BuildIndexCommand<TIndex>.Param, BuildIndexCommand<TIndex>.Result>
     where TIndex : IIndex
@@ -20,9 +20,9 @@ public class BuildIndexCommand<TIndex>(
     {
         const string operationName = "Building Index...";
 
-        await foreach (var row in rowReader.ReadAsAsyncEnumerable(cancellationToken))
+        await foreach (var row in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
         {
-            var index = indexFactory.CreateIndexFromRow(row);
+            var index = indexFactory.CreateIndexFromRow(row.Row, row.Offset, row.Length);
             await indexer.Index(index, cancellationToken);
             yield return new CommandIteration<Result>(null, operationName);
         }

@@ -6,7 +6,7 @@ namespace SortTask.Application;
 
 public class FeedRowCommand(
     Stream targetStream,
-    IRowWriter rowWriter,
+    IRowReadWriter rowWriter,
     IRowGenerator rowGenerator,
     long estimatedSize
 ) : ICommand<FeedRowCommand.Param, FeedRowCommand.Result>
@@ -27,7 +27,7 @@ public class FeedRowCommand(
             var rows = rowGenerator.Generate();
             foreach (var row in rows)
             {
-                await rowWriter.Write(row);
+                await rowWriter.Write(row, cancellationToken);
 
                 writtenRows++;
                 if (writtenRows % AppConst.FlushPeriod == 0)

@@ -1,9 +1,10 @@
+using SortTask.Domain;
 using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.StreamBTree;
 
 public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
-    : IBTreeStore<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>
+    : IBTreeStore<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>, IInitializer
 {
     public Task Initialize(CancellationToken cancellationToken)
     {

@@ -8,18 +8,18 @@ public class BTreeIndexTraverser<TNode, TIndex, TNodeId>(
     where TNode : IBTreeNode<TNode, TIndex, TNodeId>
     where TIndex : IIndex
 {
-    public async IAsyncEnumerable<TIndex> Traverse([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<TIndex> IterateAsAsyncEnumerable([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var root = await store.GetRoot(cancellationToken);
         if (root == null) yield break;
 
-        await foreach (var index in Traverse(root, cancellationToken))
+        await foreach (var index in IterateAsAsyncEnumerable(root, cancellationToken))
         {
             yield return index;
         }
     }
 
-    private async IAsyncEnumerable<TIndex> Traverse(TNode node,
+    private async IAsyncEnumerable<TIndex> IterateAsAsyncEnumerable(TNode node,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         for (var i = 0; i < node.Indices.Count + 1; i++) // +1 - for children traverse
@@ -28,7 +28,7 @@ public class BTreeIndexTraverser<TNode, TIndex, TNodeId>(
             if (node.Children.Count > 0)
             {
                 var childNode = await store.GetNode(node.Children[i], cancellationToken);
-                await foreach (var childIndex in Traverse(childNode, cancellationToken))
+                await foreach (var childIndex in IterateAsAsyncEnumerable(childNode, cancellationToken))
                 {
                     yield return childIndex;
                 }

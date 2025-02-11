@@ -7,7 +7,7 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
     private int NodeSize => sizeof(long) + // ParentId
                             sizeof(int) + // NumIndices
                             sizeof(int) + // NumChildren
-                            sizeof(long) * order.MaxIndices + // Indices
+                            (sizeof(long) + sizeof(long)) * order.MaxIndices + // Indices
                             sizeof(long) * order.MaxChildren; // Children;
 
     private static int HeaderSize => sizeof(long) + // RootId
@@ -114,20 +114,22 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
     {
         foreach (var index in indices)
         {
-            position = WriteLong(index.RowPosition, target, position);
+            position = WriteLong(index.RowOffset, target, position);
+            position = WriteLong(index.RowLength, target, position);
         }
 
         return position;
     }
 
-    private (IReadOnlyList<StreamBTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
+    private static (IReadOnlyList<StreamBTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
     {
         var indices = new List<StreamBTreeIndex>();
 
         for (var i = 0; i < count; i++)
         {
-            (var value, position) = ReadLong(buf, position);
-            indices.Add(new StreamBTreeIndex(value));
+            (var rowOffset, position) = ReadLong(buf, position);
+            (var rowLength, position) = ReadLong(buf, position);
+            indices.Add(new StreamBTreeIndex(rowOffset, rowLength));
         }
 
         return (indices, position);
@@ -141,7 +143,8 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         }
     }
 
-    private IReadOnlyList<StreamBTreeNodeId> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
+
+    private static IReadOnlyList<StreamBTreeNodeId> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
     {
         var children = new List<StreamBTreeNodeId>();
 

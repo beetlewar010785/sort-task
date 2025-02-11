@@ -1,71 +1,51 @@
+using System.Reflection;
 using System.Text;
 
 namespace SortTask.Adapter;
 
-public class BufferedStreamReader(Stream stream, Encoding encoding, int bufferSize = 1024)
+public class BufferedStreamReader(Stream stream, Encoding encoding) : IDisposable
 {
-    private readonly byte[] _buffer = new byte[bufferSize];
-    private readonly Decoder _decoder = encoding.GetDecoder();
-    private readonly char[] _charBuffer = new char[bufferSize];
-    private int _bufferSize;
-    private int _bufferPos;
-    private long _byteOffset;
+    private readonly StreamReader _streamReader = new(stream, encoding, leaveOpen: true);
+    private long _offset;
 
     public record ReadLineResult(string Line, long Offset, long Length);
 
-    public async Task<ReadLineResult?> ReadLine(CancellationToken token)
+    public async Task<ReadLineResult?> ReadLine(CancellationToken cancellationToken)
     {
-        var result = new StringBuilder();
-        var foundNewLine = false;
-        var startOffset = _byteOffset;
-        var lineByteLength = 0L;
+        _offset = ActualPosition();
+        var line = await _streamReader.ReadLineAsync(cancellationToken);
+        if (line == null) return null;
 
-        var consumedBytes = 0;
-        while (!foundNewLine)
-        {
-            if (_bufferPos >= _bufferSize)
-            {
-                _bufferSize = await stream.ReadAsync(_buffer, token);
-                _bufferPos = 0;
+        var length = encoding.GetByteCount(line);
+        var result = new ReadLineResult(line, _offset, length);
+        return result;
+    }
 
-                if (_bufferSize == 0)
-                {
-                    return result.Length > 0
-                        ? new ReadLineResult(result.ToString(), startOffset, lineByteLength)
-                        : null;
-                }
-            }
+    public void Dispose() => _streamReader.Dispose();
 
-            var charCount = _decoder.GetChars(
-                _buffer,
-                _bufferPos,
-                _bufferSize - _bufferPos,
-                _charBuffer,
-                0);
+    private static readonly FieldInfo CharPosField =
+        typeof(StreamReader).GetField("_charPos",
+            BindingFlags.NonPublic | BindingFlags.Instance |
+            BindingFlags.DeclaredOnly) ??
+        throw new Exception();
 
-            for (var i = 0; i < charCount; i++)
-            {
-                var c = _charBuffer[i];
+    private static readonly FieldInfo CharLenField =
+        typeof(StreamReader).GetField("_charLen",
+            BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        ?? throw new Exception();
 
-                var charSize = encoding.GetByteCount(new[] { c });
-                consumedBytes += charSize;
+    private static readonly FieldInfo CharBufferField =
+        typeof(StreamReader)
+            .GetField("_charBuffer", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        ?? throw new Exception();
 
-                if (c == '\n')
-                {
-                    foundNewLine = true;
-                    break;
-                }
+    private long ActualPosition()
+    {
+        var charBuffer = (char[])(CharBufferField.GetValue(_streamReader) ?? throw new Exception());
+        var charLen = (int)(CharLenField.GetValue(_streamReader) ?? throw new Exception());
+        var charPos = (int)(CharPosField.GetValue(_streamReader) ?? throw new Exception());
 
-                if (c == '\r') continue;
-
-                result.Append(c);
-                lineByteLength += charSize;
-            }
-
-            _bufferPos += consumedBytes;
-            _byteOffset += consumedBytes;
-        }
-
-        return new ReadLineResult(result.ToString(), startOffset, lineByteLength);
+        return _streamReader.BaseStream.Position -
+               _streamReader.CurrentEncoding.GetByteCount(charBuffer, charPos, charLen - charPos);
     }
 }

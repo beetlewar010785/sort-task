@@ -19,7 +19,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     {
         [CommandOption("-u|--unsorted-file")]
         [Description("Path to the input unsorted file")]
-        public string? InputFilePath { get; set; }
+        public string? UnsortedFilePath { get; set; }
 
         [CommandOption("-x|--index-file")]
         [Description("Path to the index file")]
@@ -27,7 +27,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
         [CommandOption("-s|--sorted-file")]
         [Description("Path to the output sorted file")]
-        public string? OutputFilePath { get; set; }
+        public string? SortedFilePath { get; set; }
 
         [CommandOption("-o|--order")]
         [Description("BTree order")]
@@ -56,7 +56,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             return 0;
         }
 
-        if (string.IsNullOrEmpty(settings.InputFilePath))
+        if (string.IsNullOrEmpty(settings.UnsortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Input unsorted file path is required. {usageMessage}");
             return 1;
@@ -68,7 +68,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             return 1;
         }
 
-        if (string.IsNullOrEmpty(settings.OutputFilePath))
+        if (string.IsNullOrEmpty(settings.SortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Output sorted file path is required. {usageMessage}");
             return 1;
@@ -80,8 +80,8 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             return 1;
         }
 
-        AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.InputFilePath.EscapeMarkup()}");
-        AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.OutputFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.UnsortedFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.SortedFilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
         AnsiConsole.MarkupLine("[green]Start sorting.[/]");
@@ -101,10 +101,15 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             };
 
             using var compositionRoot = CompositionRoot.Build(
-                inputFilePath: settings.InputFilePath,
+                unsortedFilePath: settings.UnsortedFilePath,
                 indexFilePath: settings.IndexFilePath,
-                outputFilePath: settings.OutputFilePath,
+                sortedFilePath: settings.SortedFilePath,
                 order: new BTreeOrder(settings.BTreeOrder));
+
+            foreach (var initializer in compositionRoot.Initializers)
+            {
+                await initializer.Initialize(cts.Token);
+            }
 
             await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand<StreamBTreeIndex>.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);

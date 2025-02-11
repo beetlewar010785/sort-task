@@ -4,8 +4,8 @@ using SortTask.Domain;
 namespace SortTask.Application;
 
 public class CheckSortCommand(
-    IRowReader rowReader,
-    IComparer<ReadRow> rowComparer
+    IRowIterator rowIterator,
+    IComparer<Row> rowComparer
 ) : ICommand<CheckSortCommand.Param, CheckSortCommand.Result>
 {
     public record Param;
@@ -14,15 +14,15 @@ public class CheckSortCommand(
     {
         public class ResultOk : Result;
 
-        public class ResultFailure(ReadRow precedingRow, ReadRow failedRow) : Result
+        public class ResultFailure(Row precedingRow, Row failedRow) : Result
         {
-            public ReadRow PrecedingRow => precedingRow;
-            public ReadRow FailedRow => failedRow;
+            public Row PrecedingRow => precedingRow;
+            public Row FailedRow => failedRow;
         }
 
         public static ResultOk Ok() => new();
 
-        public static Result Failure(ReadRow previousRow, ReadRow nextRow) =>
+        public static Result Failure(Row previousRow, Row nextRow) =>
             new ResultFailure(previousRow, nextRow);
     }
 
@@ -32,22 +32,22 @@ public class CheckSortCommand(
     {
         const string operationName = "Checking Sort...";
 
-        ReadRow? previousRow = null;
-        await foreach (var row in rowReader.ReadAsAsyncEnumerable(cancellationToken))
+        Row? previousRow = null;
+        await foreach (var row in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
         {
-            if (previousRow.HasValue)
+            if (previousRow != null)
             {
-                if (rowComparer.Compare(row, previousRow.Value) < 0)
+                if (rowComparer.Compare(row.Row, previousRow) < 0)
                 {
                     yield return new CommandIteration<Result>(
-                        Result.Failure(previousRow.Value, row), operationName);
+                        Result.Failure(previousRow, row.Row), operationName);
                     yield break;
                 }
 
                 yield return new CommandIteration<Result>(Result.Ok(), operationName);
             }
 
-            previousRow = row;
+            previousRow = row.Row;
         }
 
         yield return new CommandIteration<Result>(Result.Ok(), operationName);
