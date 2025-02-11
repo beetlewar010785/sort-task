@@ -3,12 +3,10 @@ using SortTask.Domain;
 
 namespace SortTask.Application;
 
-public class BuildIndexCommand<TIndex>(
-    IIndexFactory<TIndex> indexFactory,
+public class BuildIndexCommand(
     IRowIterator rowIterator,
-    IIndexer<TIndex> indexer
-) : ICommand<BuildIndexCommand<TIndex>.Param, BuildIndexCommand<TIndex>.Result>
-    where TIndex : IIndex
+    IIndexer indexer
+) : ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
 {
     public record Param;
 
@@ -20,10 +18,9 @@ public class BuildIndexCommand<TIndex>(
     {
         const string operationName = "Building Index...";
 
-        await foreach (var row in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
+        await foreach (var rowIteration in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
         {
-            var index = indexFactory.CreateIndexFromRow(row.Row, row.Offset, row.Length);
-            await indexer.Index(index, cancellationToken);
+            await indexer.Index(rowIteration.SentenceOph, rowIteration.Offset, rowIteration.Length, cancellationToken);
             yield return new CommandIteration<Result>(null, operationName);
         }
     }

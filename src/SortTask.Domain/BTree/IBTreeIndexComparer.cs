@@ -1,7 +1,6 @@
 namespace SortTask.Domain.BTree;
 
-public interface IBTreeIndexComparer<in TIndex>
-    where TIndex : IIndex
+public interface IBTreeIndexComparer
 {
-    Task<int> Compare(TIndex xIndex, TIndex yIndex, CancellationToken cancellationToken);
+    Task<int> Compare(BTreeIndex x, BTreeIndex y, CancellationToken cancellationToken);
 }

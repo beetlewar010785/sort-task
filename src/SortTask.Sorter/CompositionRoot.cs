@@ -4,29 +4,30 @@ using SortTask.Application;
 using SortTask.Application.Decorators;
 using SortTask.Domain;
 using SortTask.Domain.BTree;
+using Oph = SortTask.Adapter.Oph;
 
 namespace SortTask.Sorter;
 
 // I prefer not to use IoC containers due to the lack of compile-time checking
 public class CompositionRoot(
-    ICommand<BuildIndexCommand<StreamBTreeIndex>.Param, BuildIndexCommand<StreamBTreeIndex>.Result>
+    ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
         buildIndexCommand,
-    ICommand<SortRowsCommand<StreamBTreeIndex>.Param, SortRowsCommand<StreamBTreeIndex>.Result>
+    ICommand<SortRowsCommand.Param, SortRowsCommand.Result>
         sortRowsCommand,
     OphCollisionDetector ophCollisionDetector,
-    RowLookupCounter<StreamBTreeIndex> rowLookupCounter,
+    RowLookupCounter rowLookupCounter,
     IList<IDisposable> disposables,
     IList<IInitializer> initializers) : IDisposable
 {
-    public ICommand<BuildIndexCommand<StreamBTreeIndex>.Param, BuildIndexCommand<StreamBTreeIndex>.Result>
+    public ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
         BuildIndexCommand => buildIndexCommand;
 
-    public ICommand<SortRowsCommand<StreamBTreeIndex>.Param, SortRowsCommand<StreamBTreeIndex>.Result>
+    public ICommand<SortRowsCommand.Param, SortRowsCommand.Result>
         SortRowsCommand => sortRowsCommand;
 
     public OphCollisionDetector CollisionDetector => ophCollisionDetector;
 
-    public RowLookupCounter<StreamBTreeIndex> RowLookupCounter => rowLookupCounter;
+    public RowLookupCounter RowLookupCounter => rowLookupCounter;
 
     public IEnumerable<IInitializer> Initializers => initializers;
 
@@ -37,43 +38,40 @@ public class CompositionRoot(
         BTreeOrder order
     )
     {
-        var stringOph = new StringOph(AdapterConst.Encoding);
-        var indexFactory = new StreamBTreeIndexFactory(stringOph);
+        var encoding = AdapterConst.Encoding;
+
+        var oph = new Oph();
         var indexFile = File.Create(indexFilePath);
         var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter(indexFile, order);
         var store = new StreamBTreeStore(bTreeNodeReadWriter);
 
         var unsortedFile = File.OpenRead(unsortedFilePath);
-        var unsortedReadWriter = new StreamRowReadWriter(unsortedFile, AdapterConst.Encoding);
-
-        var rowLookup = new StreamBTreeRowLookup(unsortedReadWriter);
-        var lookupCounter = new RowLookupCounter<StreamBTreeIndex>(rowLookup);
-        var lookup = new RowLookupCache<StreamBTreeIndex>(
+        var rowLookup = new StreamRowReadWriter(unsortedFile, encoding, oph);
+        var lookupCounter = new RowLookupCounter(rowLookup);
+        var lookup = new RowLookupCache(
             lookupCounter,
-            new StreamBTreeIndexEqualityComparer(),
             AdapterConst.RowLookupCacheCapacity);
 
-        var ophCollisionDetector = new OphCollisionDetector(new BigEndianStringOphComparer());
-        var indexer = new BTreeIndexer<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(
+        var ophCollisionDetector = new OphCollisionDetector(new OphComparer());
+        var indexer = new Indexer(
             store,
-            new StreamBTreeNodeFactory(),
-            new StreamBTreeIndexComparer(ophCollisionDetector, new RowComparer(), lookup),
+            new BTreeIndexComparer(ophCollisionDetector, new RowComparer(), lookup),
             order);
 
-        var indexTraverser = new BTreeIndexTraverser<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(
+        var indexTraverser = new BTreeIndexTraverser(
             store);
 
         var progressRenderer = new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth);
 
         var unsortedFileIterationStream = File.OpenRead(unsortedFilePath);
-        var unsortedIterator = new StreamRowReadWriter(unsortedFileIterationStream, AdapterConst.Encoding);
-        var buildIndexCommand = new BuildIndexCommand<StreamBTreeIndex>(indexFactory, unsortedIterator, indexer)
+        var unsortedIterator = new StreamRowReadWriter(unsortedFileIterationStream, encoding, oph);
+        var buildIndexCommand = new BuildIndexCommand(unsortedIterator, indexer)
             .DecorateWithStreamLength(unsortedFileIterationStream)
             .DecorateWithProgressRender(progressRenderer);
 
         var sortedFile = File.Create(sortedFilePath);
-        var outputRowReadWriter = new StreamRowReadWriter(sortedFile, AdapterConst.Encoding);
-        var sortRowsCommand = new SortRowsCommand<StreamBTreeIndex>(indexTraverser, lookup, outputRowReadWriter)
+        var outputRowReadWriter = new StreamRowReadWriter(sortedFile, encoding, oph);
+        var sortRowsCommand = new SortRowsCommand(indexTraverser, lookup, outputRowReadWriter)
             .DecorateWithPredefinedStreamLength(sortedFile, unsortedFile.Length)
             .DecorateWithProgressRender(progressRenderer);
 

@@ -6,7 +6,7 @@ namespace SortTask.Application;
 
 public class FeedRowCommand(
     Stream targetStream,
-    IRowReadWriter rowWriter,
+    IRowWriter rowWriter,
     IRowGenerator rowGenerator,
     long estimatedSize
 ) : ICommand<FeedRowCommand.Param, FeedRowCommand.Result>

@@ -1,7 +1,6 @@
 namespace SortTask.Domain;
 
-public interface IIndexer<in TIndex>
-    where TIndex : IIndex
+public interface IIndexer
 {
-    Task Index(TIndex index, CancellationToken cancellationToken);
+    Task Index(OphULong oph, long offset, int length, CancellationToken cancellationToken);
 }

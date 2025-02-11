@@ -1,3 +1,4 @@
+using SortTask.Application;
 using SortTask.Domain;
 
 namespace SortTask.Adapter;

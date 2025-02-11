@@ -10,7 +10,7 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         sizeof(long) + // ParentId
         sizeof(int) + // NumIndices
         sizeof(int) + // NumChildren
-        (sizeof(long) + sizeof(long) + sizeof(ulong)) * order.MaxIndices + // Indices
+        (sizeof(ulong) + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
         sizeof(long) * order.MaxChildren; // Children;
 
     private static int HeaderSize => sizeof(long) + // RootId
@@ -35,23 +35,23 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         var (numNodes, position) = ReadLong(buf, 0);
         var (rootId, _) = ReadLong(buf, position);
 
-        return new StreamBTreeHeader(numNodes, StreamBTreeNodeId.FromValue(rootId));
+        return new StreamBTreeHeader(numNodes, rootId == StreamBTreeHeader.NoRootId ? null : rootId);
     }
 
     public async Task WriteHeader(StreamBTreeHeader header, CancellationToken cancellationToken)
     {
         var buf = new byte[HeaderSize];
         var position = WriteLong(header.NumNodes, buf, 0);
-        WriteLong(StreamBTreeNodeId.ToValue(header.Root), buf, position);
+        WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
 
         stream.Position = 0;
         await stream.WriteAsync(buf, cancellationToken);
         await stream.FlushAsync(cancellationToken);
     }
 
-    public async Task<StreamBTreeNode> ReadNode(StreamBTreeNodeId id, CancellationToken cancellationToken)
+    public async Task<BTreeNode> ReadNode(long id, CancellationToken cancellationToken)
     {
-        stream.Position = id.Position;
+        stream.Position = id;
         var buf = new byte[NodeSize];
         await stream.ReadExactAsync(buf, cancellationToken);
         var position = 0;
@@ -61,75 +61,74 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         (var indices, position) = ReadIndices(numIndices, buf, position);
         var children = ReadChildren(numChildren, buf, position);
 
-        return new StreamBTreeNode(
+        return new BTreeNode(
             id,
-            StreamBTreeNodeId.FromValue(parentId),
+            parentId == StreamBTreeHeader.NoRootId ? null : parentId,
             children,
             indices
         );
     }
 
-    public async Task WriteNode(StreamBTreeNode node, CancellationToken cancellationToken)
+    public async Task WriteNode(BTreeNode node, CancellationToken cancellationToken)
     {
         var buf = new byte[NodeSize];
-        var position = WriteLong(StreamBTreeNodeId.ToValue(node.ParentId), buf, 0);
+        var position = WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
         position = WriteInt(node.Indices.Count, buf, position);
         position = WriteInt(node.Children.Count, buf, position);
         position = WriteIndices(node.Indices, buf, position);
         WriteChildren(node.Children, buf, position);
 
-        stream.Position = node.Id.Position;
+        stream.Position = node.Id;
         await stream.WriteAsync(buf, cancellationToken);
         await stream.FlushAsync(cancellationToken);
     }
 
-    private int WriteIndices(IReadOnlyList<StreamBTreeIndex> indices, Span<byte> target, int position)
+    private int WriteIndices(IReadOnlyList<BTreeIndex> indices, Span<byte> target, int position)
     {
         foreach (var index in indices)
         {
             position = WriteULong(index.SentenceOph.Value, target, position);
-            position = WriteLong(index.RowOffset, target, position);
-            position = WriteLong(index.RowLength, target, position);
+            position = WriteLong(index.Offset, target, position);
+            position = WriteInt(index.Length, target, position);
         }
 
         return position;
     }
 
-    private (IReadOnlyList<StreamBTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
+    private (IReadOnlyList<BTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
     {
-        var indices = new List<StreamBTreeIndex>();
+        var indices = new List<BTreeIndex>();
 
         for (var i = 0; i < count; i++)
         {
             (var sentenceOph, position) = ReadULong(buf, position);
-            (var rowOffset, position) = ReadLong(buf, position);
-            (var rowLength, position) = ReadLong(buf, position);
+            (var offset, position) = ReadLong(buf, position);
+            (var length, position) = ReadInt(buf, position);
 
-            var index = new StreamBTreeIndex(new OphULong(sentenceOph), rowOffset, rowLength);
+            var index = new BTreeIndex(new OphULong(sentenceOph), offset, length);
             indices.Add(index);
         }
 
         return (indices, position);
     }
 
-    private void WriteChildren(IReadOnlyList<StreamBTreeNodeId> children, Span<byte> target, int position)
+    private void WriteChildren(IReadOnlyList<long> children, Span<byte> target, int position)
     {
         foreach (var id in children)
         {
-            position = WriteLong(id.Position, target, position);
+            position = WriteLong(id, target, position);
         }
     }
 
 
-    private static IReadOnlyList<StreamBTreeNodeId> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
+    private static IReadOnlyList<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
     {
-        var children = new List<StreamBTreeNodeId>();
+        var children = new List<long>();
 
         for (var i = 0; i < count; i++)
         {
             (var value, position) = ReadLong(buf, position);
-            var child = StreamBTreeNodeId.FromValue(value) ?? throw new Exception("Unexpected null child.");
-            children.Add(child);
+            children.Add(value);
         }
 
         return children;

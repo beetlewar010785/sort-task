@@ -4,7 +4,10 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReadWriter(Stream stream, Encoding encoding) : IRowReadWriter, IRowIterator
+public class StreamRowReadWriter(
+    Stream stream,
+    Encoding encoding,
+    IOph oph) : IRowWriter, IRowLookup, IRowIterator
 {
     public async Task Write(Row row, CancellationToken cancellationToken)
     {
@@ -17,7 +20,7 @@ public class StreamRowReadWriter(Stream stream, Encoding encoding) : IRowReadWri
         return stream.FlushAsync(cancellationToken);
     }
 
-    public async Task<Row> ReadAt(long offset, long length, CancellationToken cancellationToken)
+    public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
     {
         // todo improve buffer
         var buf = new byte[length];
@@ -27,14 +30,17 @@ public class StreamRowReadWriter(Stream stream, Encoding encoding) : IRowReadWri
         return DeserializeRow(rowString);
     }
 
-    public async IAsyncEnumerable<RowWithOffset> ReadAsAsyncEnumerable(
+    // todo extract
+    public async IAsyncEnumerable<RowIteration> ReadAsAsyncEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var reader = new BufferedStreamReader(stream, encoding);
         while (await reader.ReadLine(cancellationToken) is { } result)
         {
             var row = DeserializeRow(result.Line);
-            yield return new RowWithOffset(row, result.Offset, result.Length);
+            var sentenceBytes = encoding.GetBytes(row.Sentence);
+            var sentenceOph = oph.Hash(sentenceBytes);
+            yield return new RowIteration(row, sentenceOph, result.Offset, result.Length);
         }
     }
 

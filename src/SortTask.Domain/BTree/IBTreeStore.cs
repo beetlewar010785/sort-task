@@ -1,12 +1,10 @@
 namespace SortTask.Domain.BTree;
 
-public interface IBTreeStore<TNode, TIndex, TNodeId>
-    where TNode : IBTreeNode<TNode, TIndex, TNodeId>
-    where TIndex : IIndex
+public interface IBTreeStore
 {
-    Task<TNodeId> AllocateId(CancellationToken cancellationToken);
-    Task<TNode?> GetRoot(CancellationToken cancellationToken);
-    Task SetRoot(TNodeId id, CancellationToken cancellationToken);
-    Task<TNode> GetNode(TNodeId id, CancellationToken cancellationToken);
-    Task SaveNode(TNode node, CancellationToken cancellationToken);
+    Task<long> AllocateId(CancellationToken cancellationToken);
+    Task<BTreeNode?> GetRoot(CancellationToken cancellationToken);
+    Task SetRoot(long id, CancellationToken cancellationToken);
+    Task<BTreeNode> GetNode(long id, CancellationToken cancellationToken);
+    Task SaveNode(BTreeNode node, CancellationToken cancellationToken);
 }

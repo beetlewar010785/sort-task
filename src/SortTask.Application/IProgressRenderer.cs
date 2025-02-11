@@ -1,4 +1,4 @@
-namespace SortTask.Domain;
+namespace SortTask.Application;
 
 public interface IProgressRenderer
 {

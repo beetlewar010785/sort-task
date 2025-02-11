@@ -8,7 +8,7 @@ public class BufferedStreamReader(Stream stream, Encoding encoding) : IDisposabl
     private readonly StreamReader _streamReader = new(stream, encoding, leaveOpen: true);
     private long _offset;
 
-    public record ReadLineResult(string Line, long Offset, long Length);
+    public record ReadLineResult(string Line, long Offset, int Length);
 
     public async Task<ReadLineResult?> ReadLine(CancellationToken cancellationToken)
     {

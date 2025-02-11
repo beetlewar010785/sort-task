@@ -111,10 +111,10 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 await initializer.Initialize(cts.Token);
             }
 
-            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand<StreamBTreeIndex>.Param(), cts.Token)
+            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);
 
-            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<StreamBTreeIndex>.Param(), cts.Token)
+            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand.Param(), cts.Token)
                 .ToListAsync(cancellationToken: cts.Token);
 
             AnsiConsole.MarkupLine(

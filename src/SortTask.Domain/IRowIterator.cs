@@ -1,6 +1,8 @@
 namespace SortTask.Domain;
 
+public record RowIteration(Row Row, OphULong SentenceOph, long Offset, int Length);
+
 public interface IRowIterator
 {
-    IAsyncEnumerable<RowWithOffset> ReadAsAsyncEnumerable(CancellationToken cancellationToken);
+    IAsyncEnumerable<RowIteration> ReadAsAsyncEnumerable(CancellationToken cancellationToken);
 }

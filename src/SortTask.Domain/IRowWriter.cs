@@ -1,8 +1,7 @@
 namespace SortTask.Domain;
 
-public interface IRowReadWriter
+public interface IRowWriter
 {
     Task Write(Row row, CancellationToken cancellationToken);
     Task Flush(CancellationToken cancellationToken);
-    Task<Row> ReadAt(long offset, long length, CancellationToken cancellationToken);
 }

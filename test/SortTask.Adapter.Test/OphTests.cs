@@ -4,21 +4,22 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter.Test;
 
-public class StringOphTests
+public class OphTests
 {
     [TestCaseSource(nameof(TestCases))]
     public void Should_Preserve_Order(Encoding encoding, int numStrings)
     {
-        var sut = new StringOph(encoding);
+        var sut = new Oph();
 
         Faker faker = new();
         var strings = Enumerable.Range(0, numStrings)
             .Select(_ => faker.Random.Words(1))
             .ToList();
         strings.Sort(string.CompareOrdinal);
-        var hashes = strings.Select(sut.Hash);
 
-        Assert.That(hashes, Is.Ordered.Using(new BigEndianStringOphComparer()), string.Join(";", strings));
+        var hashes = strings.Select(s => sut.Hash(encoding.GetBytes(s)));
+
+        Assert.That(hashes, Is.Ordered.Using(new OphComparer()), string.Join(";", strings));
     }
 
     private static IEnumerable<TestCaseData> TestCases() =>

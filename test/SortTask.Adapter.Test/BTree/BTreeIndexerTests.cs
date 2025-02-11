@@ -1,56 +1,55 @@
 using System.Text;
-using SortTask.Adapter;
 using SortTask.Adapter.StreamBTree;
+using SortTask.Domain;
 using SortTask.Domain.BTree;
 using SortTask.Domain.RowGeneration;
 
-namespace SortTask.Domain.Test.BTRee;
+namespace SortTask.Adapter.Test.BTree;
 
-public class BTreeIndexerTests
+public class IndexerTests
 {
     [TestCaseSource(nameof(SortingCases))]
     public async Task Should_Build_Sorted_Index(TestCase testCase)
     {
         // Prepare incoming rows - move them from array to the stream.
         using var unsortedRowStream = new MemoryStream();
-        var unsortedStreamRowReadWriter = new StreamRowReadWriter(unsortedRowStream, testCase.Encoding);
+        var oph = new Oph();
+        var unsortedStreamRowReadWriter = new StreamRowReadWriter(unsortedRowStream, testCase.Encoding, oph);
         foreach (var row in testCase.Rows)
         {
             await unsortedStreamRowReadWriter.Write(row, CancellationToken.None);
             await unsortedStreamRowReadWriter.Flush(CancellationToken.None);
         }
 
-        // Indexing rows.
+        // Indexing rows
         using var indexStream = new MemoryStream();
         var rowComparer = new RowComparer();
-        var rowLookup = new StreamBTreeRowLookup(unsortedStreamRowReadWriter);
-        var indexComparer = new StreamBTreeIndexComparer(new BigEndianStringOphComparer(), rowComparer, rowLookup);
-        var nodeFactory = new StreamBTreeNodeFactory();
-        var stringOph = new StringOph(testCase.Encoding);
-        var indexFactory = new StreamBTreeIndexFactory(stringOph);
+        var indexComparer = new BTreeIndexComparer(new OphComparer(), rowComparer, unsortedStreamRowReadWriter);
         var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter(indexStream, testCase.Order);
         var store = new StreamBTreeStore(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
-        var sut = new BTreeIndexer<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(
+        var sut = new Indexer(
             store,
-            nodeFactory,
             indexComparer,
             testCase.Order
         );
 
         await using var iterationStream = new MemoryStream(unsortedRowStream.ToArray());
-        var iterationRowReadWriter = new StreamRowReadWriter(iterationStream, testCase.Encoding);
+        var iterationRowReadWriter = new StreamRowReadWriter(iterationStream, testCase.Encoding, oph);
         await iterationRowReadWriter
             .ReadAsAsyncEnumerable(CancellationToken.None)
             .ForEachAwaitAsync(async row => await sut.Index(
-                indexFactory.CreateIndexFromRow(row.Row, row.Offset, row.Length),
+                row.SentenceOph,
+                row.Offset,
+                row.Length,
                 CancellationToken.None));
 
-        var traverser = new BTreeIndexTraverser<StreamBTreeNode, StreamBTreeIndex, StreamBTreeNodeId>(store);
+        var traverser = new BTreeIndexTraverser(store);
         var sortedRows = await traverser
             .IterateAsAsyncEnumerable(CancellationToken.None)
-            .SelectAwait(async index => await rowLookup.FindRow(index, CancellationToken.None))
+            .SelectAwait(async index =>
+                await unsortedStreamRowReadWriter.FindRow(index.Offset, index.Length, CancellationToken.None))
             .ToListAsync();
 
         var expectedSortedRows = testCase.Rows.OrderBy(r => r, rowComparer).ToList();

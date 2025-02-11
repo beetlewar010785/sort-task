@@ -13,7 +13,7 @@ public class StreamBTreeNodeReadWriterTests
         await using var stream = new MemoryStream();
         var sut = new StreamBTreeNodeReadWriter(stream, new BTreeOrder(2));
 
-        var initialHeader = new StreamBTreeHeader(10, new StreamBTreeNodeId(123));
+        var initialHeader = new StreamBTreeHeader(10, 123);
         await sut.WriteHeader(initialHeader, CancellationToken.None);
 
         var actualHeader = await sut.ReadHeader(CancellationToken.None);
@@ -22,21 +22,21 @@ public class StreamBTreeNodeReadWriterTests
         var actualJson = JsonSerializer.Serialize(actualHeader);
         Assert.That(actualJson, Is.EqualTo(initialJson));
     }
-    
+
     [Test]
     public async Task Should_Write_Read_Node()
     {
         await using var stream = new MemoryStream();
         var sut = new StreamBTreeNodeReadWriter(stream, new BTreeOrder(2));
 
-        var id = new StreamBTreeNodeId(0);
-        var initialNode = new StreamBTreeNode(
+        var id = 0L;
+        var initialNode = new BTreeNode(
             id,
-            new StreamBTreeNodeId(456),
-            [new StreamBTreeNodeId(789), new StreamBTreeNodeId(890)],
+            456,
+            [789, 890],
             [
-                new StreamBTreeIndex(new OphULong(123), 123, 456),
-                new StreamBTreeIndex(new OphULong(234), 234, 567)
+                new BTreeIndex(new OphULong(123), 123, 456),
+                new BTreeIndex(new OphULong(234), 234, 567)
             ]);
 
         await sut.WriteNode(initialNode, CancellationToken.None);
