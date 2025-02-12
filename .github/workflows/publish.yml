@@ -26,4 +26,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: built-binaries
-          path: $GITHUB_WORKSPACE/app/bin/*
+          path: $GITHUB_WORKSPACE/app/bin/**/*
+
