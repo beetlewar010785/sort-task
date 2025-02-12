@@ -25,7 +25,7 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        const string usageMessage = "Usage: checker -f <file>"; // TODO: fix app name
+        const string usageMessage = "Usage: dotnet SortTask.Checker -f <file>";
 
         if (settings.ShowHelp)
         {

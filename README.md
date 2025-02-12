@@ -1,5 +1,6 @@
-UNSORTED_FILE=~/tmp/unsorted INDEX_FILE=~/tmp/index SORTED_FILE=~/tmp/sorted BTREE_ORDER=10 FILE_SIZE=1073741824 make run
-UNSORTED_FILE=~/tmp/unsorted INDEX_FILE=~/tmp/index SORTED_FILE=~/tmp/sorted BTREE_ORDER=10 FILE_SIZE=1073741824 BUILD_DIR=~/tmp/build make run-bin
+UNSORTED_FILE=~/tmp/unsorted INDEX_FILE=~/tmp/index SORTED_FILE=~/tmp/sorted FILE_SIZE=1000000000 make run-src
+BUILD_DIR=~/tmp/bin make build
+UNSORTED_FILE=~/tmp/unsorted INDEX_FILE=~/tmp/index SORTED_FILE=~/tmp/sorted FILE_SIZE=1000000000 BUILD_DIR=~/tmp/bin make run-bin
 
 FILE_SIZE=10737418
 00:00:31.9309121

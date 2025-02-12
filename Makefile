@@ -20,28 +20,31 @@ endif
 ifndef FILE_SIZE
 	$(error "ERROR: FILE_SIZE is not set")
 endif
-ifndef BTREE_ORDER
-	$(error "ERROR: BTREE_ORDER is not set")
-endif
 
 build: check-build-env
 	mkdir -p $(BUILD_DIR)
-	dotnet publish ./src/SortTask.TestFileCreator -c Release -o $(GENERATOR_BIN)
-	dotnet publish ./src/SortTask.Sorter -c Release -o $(SORTER_BIN)
-	dotnet publish ./src/SortTask.Checker -c Release -o $(CHECKER_BIN)
+	dotnet publish -c Release -r linux-x64 --self-contained false -o $(GENERATOR_BIN) ./src/SortTask.TestFileCreator
+	dotnet publish -c Release -r linux-x64 --self-contained false -o $(SORTER_BIN) ./src/SortTask.Sorter
+	dotnet publish -c Release -r linux-x64 --self-contained false -o $(CHECKER_BIN) ./src/SortTask.Checker
 
-run: check-run-env generate sort check
+run-bin: check-run-env generate-bin sort-bin check-bin
 
-run-bin: build check-run-env
-	$(GENERATOR_BIN)/SortTask.TestFileCreator -f $(UNSORTED_FILE) -s $(FILE_SIZE)
-	$(SORTER_BIN)/SortTask.Sorter -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE) -o $(BTREE_ORDER)
-	$(CHECKER_BIN)/SortTask.Checker -f $(SORTED_FILE)
+generate-bin: check-build-env
+	dotnet $(GENERATOR_BIN)/SortTask.TestFileCreator.dll -f $(UNSORTED_FILE) -s $(FILE_SIZE)
 
-generate:
+sort-bin:
+	dotnet $(SORTER_BIN)/SortTask.Sorter.dll -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE)
+
+check-bin:
+	dotnet $(CHECKER_BIN)/SortTask.Checker.dll -f $(SORTED_FILE)
+
+run-src: check-run-env generate-src sort-src check-src
+
+generate-src:
 	dotnet run --project ./src/SortTask.TestFileCreator -- -f $(UNSORTED_FILE) -s $(FILE_SIZE)
 
-sort:
-	dotnet run --project ./src/SortTask.Sorter -- -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE) -o $(BTREE_ORDER)
+sort-src:
+	dotnet run --project ./src/SortTask.Sorter -- -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE)
 
-check:
+check-src:
 	dotnet run --project ./src/SortTask.Checker -- -f $(SORTED_FILE)

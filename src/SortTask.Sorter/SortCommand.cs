@@ -29,10 +29,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         [Description("Path to the output sorted file")]
         public string? SortedFilePath { get; set; }
 
-        [CommandOption("-o|--order")]
-        [Description("BTree order")]
-        public int BTreeOrder { get; set; }
-
         [CommandOption("-h|--help")]
         [Description("Show help message")]
         public bool ShowHelp { get; set; }
@@ -41,8 +37,9 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage =
-            "Usage: sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
-        const int numOphWOrds = 2;
+            "Usage: dotnet SortTask.Sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file>";
+        const int numOphWOrds = 4;
+        const int bTreeOrder = 10;
 
         if (settings.ShowHelp)
         {
@@ -51,7 +48,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             AnsiConsole.WriteLine("  -u, --unsorted-file  Path to the input unsorted file");
             AnsiConsole.WriteLine("  -x, --index-file     Path to the index file");
             AnsiConsole.WriteLine("  -s, --sorted-file    Path to the output sorted file");
-            AnsiConsole.WriteLine("  -o, --order          BTree order");
             AnsiConsole.WriteLine("  -h, --help           Show help message");
             return 0;
         }
@@ -74,15 +70,8 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             return 1;
         }
 
-        if (settings.BTreeOrder <= 0)
-        {
-            AnsiConsole.MarkupLine($"[red]Error:[/] BTree order is required and must be > 0. {usageMessage}");
-            return 1;
-        }
-
         AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.UnsortedFilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.SortedFilePath.EscapeMarkup()}");
-        AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
         AnsiConsole.MarkupLine("[green]Start sorting.[/]");
 
@@ -104,7 +93,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 unsortedFilePath: settings.UnsortedFilePath,
                 indexFilePath: settings.IndexFilePath,
                 sortedFilePath: settings.SortedFilePath,
-                order: new BTreeOrder(settings.BTreeOrder),
+                order: new BTreeOrder(bTreeOrder),
                 new Oph(numOphWOrds));
 
             foreach (var initializer in compositionRoot.Initializers)

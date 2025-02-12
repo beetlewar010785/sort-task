@@ -30,7 +30,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        const string usageMessage = "Usage: file-creator -f <file> -s <size>"; // TODO: fix file-creator app name
+        const string usageMessage = "Usage: dotnet SortTask.TestFileCreator.dll -f <file> -s <size>";
 
         if (settings.ShowHelp)
         {
