@@ -1,0 +1,18 @@
+<Project>
+  <ItemGroup>
+    <!-- analyzers -->
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0" PrivateAssets="all" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.2" PrivateAssets="all" />
+
+    <!-- other dependencies -->
+    <PackageVersion Include="BitFaster.Caching" Version="2.5.3" />
+    <PackageVersion Include="Spectre.Console.Cli" Version="0.49.1"/>
+    <PackageVersion Include="Bogus" Version="35.6.1" />
+    <PackageVersion Include="System.Linq.Async" Version="6.0.1"/>
+    <PackageVersion Include="coverlet.collector" Version="6.0.0"/>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0"/>
+    <PackageVersion Include="NUnit" Version="3.14.0"/>
+    <PackageVersion Include="NUnit.Analyzers" Version="3.9.0"/>
+    <PackageVersion Include="NUnit3TestAdapter" Version="4.5.0"/>
+  </ItemGroup>
+</Project>

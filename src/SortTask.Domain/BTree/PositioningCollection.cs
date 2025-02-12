@@ -6,9 +6,9 @@ public readonly struct PositioningCollection<T>(T[] values)
     public IReadOnlyCollection<T> Values => values;
 
     public int Length => values.Length;
-    
+
     public T this[int index] => values[index];
-    
+
     public PositioningCollection<T> Insert(T value, int position)
     {
         var newValues = new T[values.Length + 1];

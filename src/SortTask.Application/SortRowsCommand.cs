@@ -8,7 +8,7 @@ public class SortRowsCommand<TOphValue>(
     IBTreeIndexTraverser<TOphValue> indexTraverser,
     IRowLookup rowLookup,
     IRowWriter outputRowWriter
-) : ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result> where TOphValue: struct
+) : ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result> where TOphValue : struct
 {
     public record Param;
 

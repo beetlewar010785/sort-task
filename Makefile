@@ -2,6 +2,12 @@ GENERATOR_BIN = $(BUILD_DIR)/generator
 SORTER_BIN = $(BUILD_DIR)/sorter
 CHECKER_BIN = $(BUILD_DIR)/checker
 
+lint:
+	dotnet format --verify-no-changes
+
+lint-fix:
+	dotnet format
+
 check-build-env:
 ifndef BUILD_DIR
 	$(error "ERROR: BUILD_DIR is not set")
