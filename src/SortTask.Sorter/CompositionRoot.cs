@@ -83,7 +83,7 @@ public class CompositionRoot<TOphValue>(
 
         var indexTraverser = new BTreeIndexTraverser<T>(store);
 
-        var progressRenderer = new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth);
+        var progressRenderer = new ConsoleProgressRenderer();
 
         var unsortedFileIterationStream = File.OpenRead(unsortedFilePath);
         var unsortedIterator = new StreamRowStore(unsortedFileIterationStream, encoding);

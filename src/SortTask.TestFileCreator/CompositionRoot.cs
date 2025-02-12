@@ -38,7 +38,7 @@ public class CompositionRoot(
             maxRepeatNumber: maxRepeatNumber,
             refreshRepeatingRowsPeriod: refreshRepeatingRowsPeriod);
 
-        var progressRenderer = new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth);
+        var progressRenderer = new ConsoleProgressRenderer();
 
         var feedRowCommand = new FeedRowCommand(
                 file,

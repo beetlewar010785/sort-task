@@ -1,28 +1,23 @@
 using SortTask.Application;
-using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class ConsoleProgressRenderer(int barWidth) : IProgressRenderer
+public class ConsoleProgressRenderer : IProgressRenderer
 {
-    private static readonly TimeSpan RenderInterval = TimeSpan.FromMilliseconds(200);
-
     private string? _lastRenderedString;
-    private readonly ConsoleProgressStringBuilder _progressBuilder = new(barWidth);
-    private DateTime _lastRenderTime;
+    private readonly ConsoleProgressStringBuilder _progressBuilder = new(Console.WindowWidth);
 
     public void Render(int percent, string text)
     {
-        var now = DateTime.Now;
-        var elapsed = now - _lastRenderTime;
-        if (elapsed < RenderInterval)
+        var stringToRender = _progressBuilder.BuildProgressString(percent, text);
+        if (stringToRender == _lastRenderedString)
         {
             return;
         }
 
-        _lastRenderedString = _progressBuilder.BuildProgressString(percent, text);
-        Console.Write($"\r{_lastRenderedString}");
-        _lastRenderTime = now;
+        _lastRenderedString = stringToRender;
+        Console.SetCursorPosition(0, Console.CursorTop);
+        Console.Write(_lastRenderedString.PadRight(Console.WindowWidth));
     }
 
     public void Complete()

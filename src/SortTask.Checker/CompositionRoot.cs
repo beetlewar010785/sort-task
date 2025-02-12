@@ -20,7 +20,7 @@ public class CompositionRoot(
                 rowIterator,
                 new RowComparer())
             .DecorateWithStreamLength(file)
-            .DecorateWithProgressRender(new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth));
+            .DecorateWithProgressRender(new ConsoleProgressRenderer());
 
         return new CompositionRoot(command, [file]);
     }
