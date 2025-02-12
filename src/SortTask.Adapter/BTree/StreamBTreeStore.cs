@@ -19,8 +19,8 @@ public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
         var emptyNode = new BTreeNode(
             newNodePosition,
             null,
-            [],
-            []
+            new PositioningCollection<long>([]),
+            new PositioningCollection<BTreeIndex>([])
         );
         await SaveNode(emptyNode, cancellationToken);
         await bTreeNodeReadWriter.WriteHeader(header.IncrementNodes(), cancellationToken);

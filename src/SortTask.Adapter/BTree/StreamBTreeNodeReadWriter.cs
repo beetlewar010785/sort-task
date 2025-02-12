@@ -5,16 +5,17 @@ namespace SortTask.Adapter.BTree;
 
 public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
 {
+    private static int HeaderSize =>
+        sizeof(long) + // RootId
+        sizeof(long); // NumNodes
+
     // move to struct?
-    private int NodeSize =>
+    private readonly int _nodeSize =
         sizeof(long) + // ParentId
         sizeof(int) + // NumIndices
         sizeof(int) + // NumChildren
         (sizeof(ulong) + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
         sizeof(long) * order.MaxChildren; // Children;
-
-    private static int HeaderSize => sizeof(long) + // RootId
-                                     sizeof(long); // NumNodes
 
     /// <summary>
     /// Calculates position in the stream where the node with the specified nodeIndex should be inserted
@@ -23,7 +24,7 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
     /// <returns></returns>
     public long CalculateNodePosition(long nodeIndex)
     {
-        return HeaderSize + nodeIndex * NodeSize;
+        return HeaderSize + nodeIndex * _nodeSize;
     }
 
     public async Task<StreamBTreeHeader> ReadHeader(CancellationToken cancellationToken)
@@ -52,7 +53,7 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
     public async Task<BTreeNode> ReadNode(long id, CancellationToken cancellationToken)
     {
         stream.Position = id;
-        var buf = new byte[NodeSize];
+        var buf = new byte[_nodeSize];
         await stream.ReadExactAsync(buf, cancellationToken);
         var position = 0;
         (var parentId, position) = ReadLong(buf, position);
@@ -71,19 +72,19 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
 
     public async Task WriteNode(BTreeNode node, CancellationToken cancellationToken)
     {
-        var buf = new byte[NodeSize];
+        var buf = new byte[_nodeSize];
         var position = WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
-        position = WriteInt(node.Indices.Count, buf, position);
-        position = WriteInt(node.Children.Count, buf, position);
-        position = WriteIndices(node.Indices, buf, position);
-        WriteChildren(node.Children, buf, position);
+        position = WriteInt(node.Indices.Length, buf, position);
+        position = WriteInt(node.Children.Length, buf, position);
+        position = WriteIndices(node.Indices.Values, buf, position);
+        _ = WriteChildren(node.Children.Values, buf, position);
 
         stream.Position = node.Id;
         await stream.WriteAsync(buf, cancellationToken);
         await stream.FlushAsync(cancellationToken);
     }
 
-    private int WriteIndices(IReadOnlyList<BTreeIndex> indices, Span<byte> target, int position)
+    private static int WriteIndices(IEnumerable<BTreeIndex> indices, Span<byte> target, int position)
     {
         foreach (var index in indices)
         {
@@ -95,9 +96,9 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         return position;
     }
 
-    private (IReadOnlyList<BTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
+    private static (PositioningCollection<BTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
     {
-        var indices = new List<BTreeIndex>();
+        var indices = new BTreeIndex[count];
 
         for (var i = 0; i < count; i++)
         {
@@ -106,32 +107,34 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
             (var length, position) = ReadInt(buf, position);
 
             var index = new BTreeIndex(new OphULong(sentenceOph), offset, length);
-            indices.Add(index);
+            indices[i] = index;
         }
 
-        return (indices, position);
+        return (new PositioningCollection<BTreeIndex>(indices), position);
     }
 
-    private void WriteChildren(IReadOnlyList<long> children, Span<byte> target, int position)
+    private static int WriteChildren(IEnumerable<long> children, Span<byte> target, int position)
     {
         foreach (var id in children)
         {
             position = WriteLong(id, target, position);
         }
+
+        return position;
     }
 
 
-    private static IReadOnlyList<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
+    private static PositioningCollection<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
     {
-        var children = new List<long>();
+        var children = new long[count];
 
         for (var i = 0; i < count; i++)
         {
             (var value, position) = ReadLong(buf, position);
-            children.Add(value);
+            children[i] = value;
         }
 
-        return children;
+        return new PositioningCollection<long>(children);
     }
 
     private static int WriteLong(long value, Span<byte> target, int position)

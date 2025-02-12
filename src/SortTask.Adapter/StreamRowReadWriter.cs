@@ -4,11 +4,10 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowStore(
-    Stream stream,
-    Encoding encoding,
-    IOph oph) : IRowWriter, IRowLookup, IRowIterator
+public class StreamRowStore(Stream stream, Encoding encoding) : IRowWriter, IRowLookup, IRowIterator
 {
+    private byte[] _buf = [];
+
     public async Task Write(Row row, CancellationToken cancellationToken)
     {
         var bytes = encoding.GetBytes(SerializeRow(row));
@@ -22,15 +21,17 @@ public class StreamRowStore(
 
     public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
     {
-        // todo improve buffer
-        var buf = new byte[length];
+        if (_buf.Length < length)
+        {
+            _buf = new byte[length];
+        }
+
         stream.Position = offset;
-        await stream.ReadExactAsync(buf, cancellationToken);
-        var rowString = encoding.GetString(buf);
+        await stream.ReadExactAsync(_buf.AsMemory(0, length), cancellationToken);
+        var rowString = encoding.GetString(_buf.AsSpan(0, length));
         return DeserializeRow(rowString);
     }
 
-    // todo extract
     public async IAsyncEnumerable<RowIteration> ReadAsAsyncEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
@@ -38,9 +39,7 @@ public class StreamRowStore(
         while (await reader.ReadLine(cancellationToken) is { } result)
         {
             var row = DeserializeRow(result.Line);
-            var sentenceBytes = encoding.GetBytes(row.Sentence);
-            var sentenceOph = oph.Hash(sentenceBytes);
-            yield return new RowIteration(row, sentenceOph, result.Offset, result.Length);
+            yield return new RowIteration(row, result.Offset, result.Length);
         }
     }
 

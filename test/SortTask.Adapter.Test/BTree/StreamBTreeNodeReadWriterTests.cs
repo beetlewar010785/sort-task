@@ -33,11 +33,12 @@ public class StreamBTreeNodeReadWriterTests
         var initialNode = new BTreeNode(
             id,
             456,
-            [789, 890],
-            [
+            new PositioningCollection<long>([789, 890]),
+            new PositioningCollection<BTreeIndex>([
                 new BTreeIndex(new OphULong(123), 123, 456),
                 new BTreeIndex(new OphULong(234), 234, 567)
-            ]);
+            ])
+        );
 
         await sut.WriteNode(initialNode, CancellationToken.None);
 

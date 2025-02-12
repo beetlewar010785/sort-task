@@ -20,7 +20,7 @@ public class BuildIndexCommand(
 
         await foreach (var rowIteration in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
         {
-            await indexer.Index(rowIteration.SentenceOph, rowIteration.Offset, rowIteration.Length, cancellationToken);
+            await indexer.Index(rowIteration.Row, rowIteration.Offset, rowIteration.Length, cancellationToken);
             yield return new CommandIteration<Result>(null, operationName);
         }
     }

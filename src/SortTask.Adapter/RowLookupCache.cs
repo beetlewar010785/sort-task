@@ -3,7 +3,7 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class RowLookupCache(IRowLookup inner, int capacity = 1000) : IRowLookup
+public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
 {
     private readonly ConcurrentLru<long, Row> _lru = new(1, capacity, EqualityComparer<long>.Default);
 
