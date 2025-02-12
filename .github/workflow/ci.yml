@@ -1,0 +1,102 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Linter
+        run: make lint
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Tests
+        run: make test
+
+  publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build and Publish
+        run: BUILD_DIR=/app/bin make build
+
+  e2e-src:
+    name: End-to-End Test (Source Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Prepare Directories
+        run: mkdir -p /app/output
+
+      - name: Run E2E Test (Source)
+        run: |
+          UNSORTED_FILE=/app/output/unsorted \
+          INDEX_FILE=/app/output/index \
+          SORTED_FILE=/app/output/sorted \
+          FILE_SIZE=1000000 \
+          make run-src
+
+  e2e-bin:
+    name: End-to-End Test (Binary Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: BUILD_DIR=/app/bin make build
+
+      - name: Prepare Directories
+        run: mkdir -p /app/output
+
+      - name: Run E2E Test (Binary)
+        run: |
+          UNSORTED_FILE=/app/output/unsorted \
+          INDEX_FILE=/app/output/index \
+          SORTED_FILE=/app/output/sorted \
+          FILE_SIZE=1000000 \
+          BUILD_DIR=/app/bin \
+          make run-bin

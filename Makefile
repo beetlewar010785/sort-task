@@ -8,6 +8,9 @@ lint:
 lint-fix:
 	dotnet format
 
+test:
+	dotnet test
+
 check-build-env:
 ifndef BUILD_DIR
 	$(error "ERROR: BUILD_DIR is not set")
@@ -27,7 +30,7 @@ ifndef FILE_SIZE
 	$(error "ERROR: FILE_SIZE is not set")
 endif
 
-build: check-build-env
+publish: check-build-env
 	mkdir -p $(BUILD_DIR)
 	dotnet publish -c Release -r linux-x64 --self-contained false -o $(GENERATOR_BIN) ./src/SortTask.TestFileCreator
 	dotnet publish -c Release -r linux-x64 --self-contained false -o $(SORTER_BIN) ./src/SortTask.Sorter
