@@ -1,6 +1,6 @@
 namespace SortTask.Domain.BTree;
 
-public class BTreeNode(
+public readonly struct BTreeNode(
     long id,
     long? parentId,
     IReadOnlyList<long> children,

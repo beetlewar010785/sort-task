@@ -15,7 +15,7 @@ public class CompositionRoot(
     {
         var file = File.OpenRead(filePath);
 
-        var rowIterator = new StreamRowReadWriter(file, AdapterConst.Encoding, new Oph());
+        var rowIterator = new StreamRowStore(file, AdapterConst.Encoding, new Oph());
         var command = new CheckSortCommand(
                 rowIterator,
                 new RowComparer())

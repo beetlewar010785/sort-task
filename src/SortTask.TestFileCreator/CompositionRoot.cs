@@ -23,7 +23,7 @@ public class CompositionRoot(
 
         var file = File.Create(filePath);
 
-        var rowWriter = new StreamRowReadWriter(file, AdapterConst.Encoding, new Oph());
+        var rowWriter = new StreamRowStore(file, AdapterConst.Encoding, new Oph());
 
         var rnd = new Random();
         var rowGenerator = new RowGenerationRepeater(

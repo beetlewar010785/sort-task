@@ -1,16 +1,8 @@
 namespace SortTask.Domain.BTree;
 
-public record BTreeIndex(OphULong SentenceOph, long Offset, int Length);
-
-public class StreamBTreeIndexEqualityComparer : IEqualityComparer<BTreeIndex>
+public readonly struct BTreeIndex(OphULong sentenceOph, long offset, int length)
 {
-    public bool Equals(BTreeIndex? x, BTreeIndex? y)
-    {
-        return x?.Offset == y?.Offset;
-    }
-
-    public int GetHashCode(BTreeIndex obj)
-    {
-        return obj.Offset.GetHashCode();
-    }
+    public OphULong SentenceOph { get; } = sentenceOph;
+    public long Offset { get; } = offset;
+    public int Length { get; } = length;
 }

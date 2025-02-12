@@ -50,7 +50,7 @@ public class CompositionRoot(
         var store = new BTreeStoreCache(streamBTreeStore);
 
         var unsortedFile = File.OpenRead(unsortedFilePath);
-        var rowLookup = new StreamRowReadWriter(unsortedFile, encoding, oph);
+        var rowLookup = new StreamRowStore(unsortedFile, encoding, oph);
         var lookup = new RowLookupCache(rowLookup);
 
         var ophCollisionDetector = new OphCollisionDetector(new OphComparer());
@@ -65,13 +65,13 @@ public class CompositionRoot(
         var progressRenderer = new ConsoleProgressRenderer(AdapterConst.ProgressBarWidth);
 
         var unsortedFileIterationStream = File.OpenRead(unsortedFilePath);
-        var unsortedIterator = new StreamRowReadWriter(unsortedFileIterationStream, encoding, oph);
+        var unsortedIterator = new StreamRowStore(unsortedFileIterationStream, encoding, oph);
         var buildIndexCommand = new BuildIndexCommand(unsortedIterator, indexer)
             .DecorateWithStreamLength(unsortedFileIterationStream)
             .DecorateWithProgressRender(progressRenderer);
 
         var sortedFile = File.Create(sortedFilePath);
-        var outputRowReadWriter = new StreamRowReadWriter(sortedFile, encoding, oph);
+        var outputRowReadWriter = new StreamRowStore(sortedFile, encoding, oph);
         var sortRowsCommand = new SortRowsCommand(indexTraverser, lookup, outputRowReadWriter)
             .DecorateWithPredefinedStreamLength(sortedFile, unsortedFile.Length)
             .DecorateWithProgressRender(progressRenderer);

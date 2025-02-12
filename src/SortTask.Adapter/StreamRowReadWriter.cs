@@ -4,7 +4,7 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class StreamRowReadWriter(
+public class StreamRowStore(
     Stream stream,
     Encoding encoding,
     IOph oph) : IRowWriter, IRowLookup, IRowIterator

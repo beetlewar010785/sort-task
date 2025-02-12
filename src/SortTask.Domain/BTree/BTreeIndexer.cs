@@ -22,81 +22,61 @@ public class Indexer(
         await InserBTreeIndex(targetResult.Target, targetResult.Position, index, cancellationToken);
     }
 
-    private async Task InserBTreeIndex(BTreeNode targeBTreeNode, int position, BTreeIndex index,
+    private async Task InserBTreeIndex(BTreeNode targetBTreeNode, int position, BTreeIndex index,
         CancellationToken cancellationToken)
     {
-        var newIndices = targeBTreeNode.Indices.ToList();
+        var newIndices = targetBTreeNode.Indices.ToList();
         newIndices.Insert(position, index);
-        targeBTreeNode = new BTreeNode(
-            targeBTreeNode.Id,
-            targeBTreeNode.ParentId,
-            targeBTreeNode.Children,
+        targetBTreeNode = new BTreeNode(
+            targetBTreeNode.Id,
+            targetBTreeNode.ParentId,
+            targetBTreeNode.Children,
             newIndices
         );
-        await store.SaveNode(targeBTreeNode, cancellationToken);
-        await CheckOverflow(targeBTreeNode, cancellationToken);
+        await store.SaveNode(targetBTreeNode, cancellationToken);
+        await CheckOverflow(targetBTreeNode, cancellationToken);
     }
 
     private async Task CheckOverflow(BTreeNode node, CancellationToken cancellationToken)
     {
-        if (!order.IsOverflowed(node.Indices.Count))
+        while (true)
         {
-            return;
+            if (!order.IsOverflowed(node.Indices.Count))
+            {
+                return;
+            }
+
+            var splitResult = SplitNode(node);
+            var rightId = await store.AllocateId(cancellationToken);
+
+            BTreeNode? parent = null;
+            if (node.ParentId.HasValue)
+            {
+                parent = await store.GetNode(node.ParentId.Value, cancellationToken);
+            }
+
+            if (parent == null)
+            {
+                // if the node does not have parent, it means it is root
+                // then we need to assign new root
+                parent = await CreateNewRoot(splitResult.PopupIndex, [node.Id, rightId], cancellationToken);
+            }
+            else
+            {
+                // when we have a parent, we add an index to the parent and created child node
+                parent = await AddIndexAndNodeToParent(parent: parent.Value, insertingNode: rightId, inserBTreeNodeAfter: node.Id, insertingIndex: splitResult.PopupIndex, cancellationToken: cancellationToken);
+            }
+
+            await CreateOrUpdateNode(nodeId: node.Id, newParentId: parent.Value.Id, newChildren: splitResult.LeftChildren, newIndices: splitResult.LeftIndices, childrenParentIdChanged: false, cancellationToken);
+
+            await CreateOrUpdateNode(nodeId: rightId, newParentId: parent.Value.Id, newChildren: splitResult.RightChildren, newIndices: splitResult.RightIndices, childrenParentIdChanged: true, cancellationToken);
+
+            // repeat recursively until we reach the root or find a node that is not overflowed
+            node = parent.Value;
         }
-
-        var splitResult = SpliBTreeNode(node);
-        var rightId = await store.AllocateId(cancellationToken);
-
-        BTreeNode? parent = null;
-        if (node.ParentId.HasValue)
-        {
-            parent = await store.GetNode(node.ParentId.Value, cancellationToken);
-        }
-
-        if (parent == null)
-        {
-            // if the node does not have parent, it means it is root
-            // then we need to assign new root
-            parent = await CreateNewRoot(
-                splitResult.PopupIndex,
-                [node.Id, rightId],
-                cancellationToken
-            );
-        }
-        else
-        {
-            // when we have a parent, we add an index to the parent and created child node
-            parent = await AddIndexAndNodeToParent(
-                parent: parent,
-                insertingNode: rightId,
-                inserBTreeNodeAfter: node.Id,
-                insertingIndex: splitResult.PopupIndex,
-                cancellationToken: cancellationToken);
-        }
-
-        await CreateOrUpdateNode(
-            nodeId: node.Id,
-            newParentId: parent.Id,
-            newChildren: splitResult.LeftChildren,
-            newIndices: splitResult.LeftIndices,
-            childrenParentIdChanged: false,
-            cancellationToken
-        );
-
-        await CreateOrUpdateNode(
-            nodeId: rightId,
-            newParentId: parent.Id,
-            newChildren: splitResult.RightChildren,
-            newIndices: splitResult.RightIndices,
-            childrenParentIdChanged: true,
-            cancellationToken
-        );
-
-        // repeat recursively until we reach the root or find a node that is not overflowed
-        await CheckOverflow(parent, cancellationToken);
     }
 
-    private SpliBTreeNodeResult SpliBTreeNode(BTreeNode node)
+    private static SpliBTreeNodeResult SplitNode(BTreeNode node)
     {
         var midIndex = node.Indices.Count / 2;
         var midChild = node.Children.Count / 2;

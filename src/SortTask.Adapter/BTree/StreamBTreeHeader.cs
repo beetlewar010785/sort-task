@@ -1,10 +1,13 @@
 namespace SortTask.Adapter.BTree;
 
-public record StreamBTreeHeader(long NumNodes, long? Root)
+public readonly struct StreamBTreeHeader(long numNodes, long? root)
 {
     public const int NoRootId = -1;
-    
-    public StreamBTreeHeader SetRoot(long root) => this with { Root = root };
 
-    public StreamBTreeHeader IncrementNodes() => this with { NumNodes = NumNodes + 1 };
+    public long? Root { get; } = root;
+    public long NumNodes { get; } = numNodes;
+
+    public StreamBTreeHeader SetRoot(long newRoot) => new(NumNodes, newRoot);
+
+    public StreamBTreeHeader IncrementNodes() => new(NumNodes + 1, Root);
 }

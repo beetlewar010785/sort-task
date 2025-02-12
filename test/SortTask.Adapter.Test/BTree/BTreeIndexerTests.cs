@@ -14,7 +14,7 @@ public class IndexerTests
         // Prepare incoming rows - move them from array to the stream.
         using var unsortedRowStream = new MemoryStream();
         var oph = new Oph();
-        var unsortedStreamRowReadWriter = new StreamRowReadWriter(unsortedRowStream, testCase.Encoding, oph);
+        var unsortedStreamRowReadWriter = new StreamRowStore(unsortedRowStream, testCase.Encoding, oph);
         foreach (var row in testCase.Rows)
         {
             await unsortedStreamRowReadWriter.Write(row, CancellationToken.None);
@@ -36,7 +36,7 @@ public class IndexerTests
         );
 
         await using var iterationStream = new MemoryStream(unsortedRowStream.ToArray());
-        var iterationRowReadWriter = new StreamRowReadWriter(iterationStream, testCase.Encoding, oph);
+        var iterationRowReadWriter = new StreamRowStore(iterationStream, testCase.Encoding, oph);
         await iterationRowReadWriter
             .ReadAsAsyncEnumerable(CancellationToken.None)
             .ForEachAwaitAsync(async row => await sut.Index(
