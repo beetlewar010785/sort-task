@@ -1,5 +1,5 @@
 using System.Text;
-using SortTask.Adapter.StreamBTree;
+using SortTask.Adapter.BTree;
 using SortTask.Domain;
 using SortTask.Domain.BTree;
 using SortTask.Domain.RowGeneration;
@@ -130,7 +130,7 @@ public class IndexerTests
             .SetName("Predefined rows");
 
 
-        var rowGenerator = new RandomRowGenerator(new Random(), 1000, 3);
+        var rowGenerator = new RandomRowGenerator(new Random());
         yield return new TestCaseData(new TestCase(
                 Enumerable
                     .Range(0, 1000)

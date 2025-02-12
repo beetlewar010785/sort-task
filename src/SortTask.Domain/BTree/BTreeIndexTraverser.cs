@@ -7,8 +7,10 @@ public class BTreeIndexTraverser(IBTreeStore store) : IBTreeIndexTraverser
     public async IAsyncEnumerable<BTreeIndex> IterateAsAsyncEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var root = await store.GetRoot(cancellationToken);
-        if (root == null) yield break;
+        var rootId = await store.GetRoot(cancellationToken);
+        if (rootId == null) yield break;
+
+        var root = await store.GetNode(rootId.Value, cancellationToken);
 
         await foreach (var index in IterateAsAsyncEnumerable(root, cancellationToken))
         {

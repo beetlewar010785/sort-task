@@ -1,7 +1,7 @@
 using SortTask.Domain;
 using SortTask.Domain.BTree;
 
-namespace SortTask.Adapter.StreamBTree;
+namespace SortTask.Adapter.BTree;
 
 public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
 {

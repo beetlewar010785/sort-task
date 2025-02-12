@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using SortTask.Adapter.StreamBTree;
 using SortTask.Application;
 using SortTask.Domain.BTree;
 using Spectre.Console;
@@ -118,10 +117,22 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 .ToListAsync(cancellationToken: cts.Token);
 
             AnsiConsole.MarkupLine(
-                $"[yellow]Index collision number: [/] {compositionRoot.CollisionDetector.CollisionNumber}");
+                $"[yellow]Index collisions: [/] {compositionRoot.CollisionDetector.CollisionCount}");
 
             AnsiConsole.MarkupLine(
-                $"[yellow]Row lookup number: [/] {compositionRoot.RowLookupCounter.Count}");
+                $"[yellow]Index comparisons: [/] {compositionRoot.CollisionDetector.ComparisonCount}");
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Row lookup skip: [/] {compositionRoot.RowLookupCache.FindRowSkipCount}");
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Row lookup execute: [/] {compositionRoot.RowLookupCache.FindRowExecuteCount}");
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Get node skip: [/] {compositionRoot.BTreeStoreCache.GetNodeSkipCount}");
+
+            AnsiConsole.MarkupLine(
+                $"[yellow]Get node execute: [/] {compositionRoot.BTreeStoreCache.GetNodeExecuteCount}");
         }
         catch (OperationCanceledException)
         {

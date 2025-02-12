@@ -8,15 +8,16 @@ public class Indexer(
 {
     public async Task Index(OphULong oph, long offset, int length, CancellationToken cancellationToken)
     {
-        var root = await store.GetRoot(cancellationToken);
+        var rootId = await store.GetRoot(cancellationToken);
 
         var index = new BTreeIndex(oph, offset, length);
-        if (root == null)
+        if (rootId == null)
         {
             await CreateNewRoot(index, [], cancellationToken);
             return;
         }
 
+        var root = await store.GetNode(rootId.Value, cancellationToken);
         var targetResult = await FindTarget(index, root, cancellationToken);
         await InserBTreeIndex(targetResult.Target, targetResult.Position, index, cancellationToken);
     }
@@ -141,16 +142,16 @@ public class Indexer(
         IReadOnlyList<long> children,
         CancellationToken cancellationToken)
     {
-        var parentId = await store.AllocateId(cancellationToken);
-        var parent = new BTreeNode(
-            parentId,
+        var rootId = await store.AllocateId(cancellationToken);
+        var root = new BTreeNode(
+            rootId,
             null,
             children,
             [index]
         );
-        await store.SaveNode(parent, cancellationToken);
-        await store.SetRoot(parent.Id, cancellationToken);
-        return parent;
+        await store.SaveNode(root, cancellationToken);
+        await store.SetRoot(root.Id, cancellationToken);
+        return root;
     }
 
     private async Task CreateOrUpdateNode(

@@ -1,5 +1,5 @@
 using SortTask.Adapter;
-using SortTask.Adapter.StreamBTree;
+using SortTask.Adapter.BTree;
 using SortTask.Application;
 using SortTask.Application.Decorators;
 using SortTask.Domain;
@@ -15,7 +15,8 @@ public class CompositionRoot(
     ICommand<SortRowsCommand.Param, SortRowsCommand.Result>
         sortRowsCommand,
     OphCollisionDetector ophCollisionDetector,
-    RowLookupCounter rowLookupCounter,
+    RowLookupCache rowLookupCache,
+    BTreeStoreCache bTreeStoreCache,
     IList<IDisposable> disposables,
     IList<IInitializer> initializers) : IDisposable
 {
@@ -27,7 +28,9 @@ public class CompositionRoot(
 
     public OphCollisionDetector CollisionDetector => ophCollisionDetector;
 
-    public RowLookupCounter RowLookupCounter => rowLookupCounter;
+    public RowLookupCache RowLookupCache => rowLookupCache;
+
+    public BTreeStoreCache BTreeStoreCache => bTreeStoreCache;
 
     public IEnumerable<IInitializer> Initializers => initializers;
 
@@ -43,14 +46,12 @@ public class CompositionRoot(
         var oph = new Oph();
         var indexFile = File.Create(indexFilePath);
         var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter(indexFile, order);
-        var store = new StreamBTreeStore(bTreeNodeReadWriter);
+        var streamBTreeStore = new StreamBTreeStore(bTreeNodeReadWriter);
+        var store = new BTreeStoreCache(streamBTreeStore);
 
         var unsortedFile = File.OpenRead(unsortedFilePath);
         var rowLookup = new StreamRowReadWriter(unsortedFile, encoding, oph);
-        var lookupCounter = new RowLookupCounter(rowLookup);
-        var lookup = new RowLookupCache(
-            lookupCounter,
-            AdapterConst.RowLookupCacheCapacity);
+        var lookup = new RowLookupCache(rowLookup);
 
         var ophCollisionDetector = new OphCollisionDetector(new OphComparer());
         var indexer = new Indexer(
@@ -79,9 +80,10 @@ public class CompositionRoot(
             buildIndexCommand,
             sortRowsCommand,
             ophCollisionDetector,
-            lookupCounter,
+            lookup,
+            store,
             [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile],
-            [store]);
+            [streamBTreeStore]);
     }
 
     public void Dispose()

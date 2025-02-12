@@ -20,13 +20,15 @@ public interface IOph
 
 public class OphCollisionDetector(IComparer<OphULong> inner) : Comparer<OphULong>
 {
-    public int CollisionNumber { get; private set; }
+    public long CollisionCount { get; private set; }
+    public long ComparisonCount { get; private set; }
 
     public override int Compare(OphULong x, OphULong y)
     {
+        ComparisonCount++;
         if (x.Value.CompareTo(y.Value) == 0)
         {
-            CollisionNumber++;
+            CollisionCount++;
         }
 
         return inner.Compare(x, y);

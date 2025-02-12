@@ -21,20 +21,12 @@ public class FeedRowCommand(
     {
         const string operationName = "Generating Test Data...";
 
-        var writtenRows = 0;
         while (true)
         {
             var rows = rowGenerator.Generate();
             foreach (var row in rows)
             {
                 await rowWriter.Write(row, cancellationToken);
-
-                writtenRows++;
-                if (writtenRows % AppConst.FlushPeriod == 0)
-                {
-                    await rowWriter.Flush(cancellationToken);
-                }
-
                 yield return new CommandIteration<Result>(
                     null,
                     operationName);

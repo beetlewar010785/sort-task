@@ -1,8 +1,7 @@
 using SortTask.Application;
-using SortTask.Domain;
 using SortTask.Domain.BTree;
 
-namespace SortTask.Adapter.StreamBTree;
+namespace SortTask.Adapter.BTree;
 
 public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
     : IBTreeStore, IInitializer
@@ -29,15 +28,10 @@ public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
         return emptyNode.Id;
     }
 
-    public async Task<BTreeNode?> GetRoot(CancellationToken cancellationToken)
+    public async Task<long?> GetRoot(CancellationToken cancellationToken)
     {
         var header = await bTreeNodeReadWriter.ReadHeader(cancellationToken);
-        if (!header.Root.HasValue)
-        {
-            return null;
-        }
-
-        return await GetNode(header.Root!.Value, cancellationToken);
+        return header.Root ?? null;
     }
 
     public async Task SetRoot(long id, CancellationToken cancellationToken)

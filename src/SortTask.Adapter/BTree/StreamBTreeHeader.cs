@@ -1,4 +1,4 @@
-namespace SortTask.Adapter.StreamBTree;
+namespace SortTask.Adapter.BTree;
 
 public record StreamBTreeHeader(long NumNodes, long? Root)
 {

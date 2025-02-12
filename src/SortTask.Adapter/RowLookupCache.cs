@@ -3,34 +3,26 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class RowLookupCache(IRowLookup inner, int capacity) : IRowLookup
+public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
 {
-    private readonly ConcurrentLru<long, Row> _lru = new(1, capacity, new OffsetComparer());
+    private readonly ConcurrentLru<long, Row> _lru = new(1, capacity, EqualityComparer<long>.Default);
+
+    public int FindRowSkipCount { get; private set; }
+    public int FindRowExecuteCount { get; private set; }
 
     public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
     {
         if (_lru.TryGet(offset, out var row))
         {
+            FindRowSkipCount++;
             return row;
         }
 
         row = await inner.FindRow(offset, length, cancellationToken);
+        FindRowExecuteCount++;
 
         _lru.AddOrUpdate(offset, row);
 
         return row;
-    }
-
-    private class OffsetComparer : IEqualityComparer<long>
-    {
-        public bool Equals(long x, long y)
-        {
-            return x == y;
-        }
-
-        public int GetHashCode(long obj)
-        {
-            return obj.GetHashCode();
-        }
     }
 }

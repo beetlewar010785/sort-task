@@ -20,18 +20,10 @@ public class SortRowsCommand(
     {
         const string operationName = "Sorting...";
 
-        var writtenRows = 0;
         await foreach (var index in ibTreeIndexTraverser.IterateAsAsyncEnumerable(cancellationToken))
         {
             var row = await rowLookup.FindRow(index.Offset, index.Length, cancellationToken);
             await outputRowWriter.Write(row, cancellationToken);
-
-            writtenRows++;
-            if (writtenRows % AppConst.FlushPeriod == 0)
-            {
-                await outputRowWriter.Flush(cancellationToken);
-            }
-
             yield return new CommandIteration<Result>(null, operationName);
         }
 
