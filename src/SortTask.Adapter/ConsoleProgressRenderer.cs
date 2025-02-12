@@ -18,8 +18,7 @@ public class ConsoleProgressRenderer : IProgressRenderer
         }
 
         _lastRenderedString = stringToRender;
-        Console.SetCursorPosition(0, Console.CursorTop);
-        Console.Write(_lastRenderedString.PadRight(WindowWidth));
+        Console.Write($"\r{_lastRenderedString}");
     }
 
     public void Complete()
