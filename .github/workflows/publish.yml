@@ -20,10 +20,10 @@ jobs:
         run: dotnet restore
 
       - name: Build and Publish
-        run: BUILD_DIR=/app/bin make publish
+        run: BUILD_DIR=$GITHUB_WORKSPACE/app/bin make publish
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: built-binaries
-          path: /app/bin
+          path: $GITHUB_WORKSPACE/app/bin
