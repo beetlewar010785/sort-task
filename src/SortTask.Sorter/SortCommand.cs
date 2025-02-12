@@ -38,8 +38,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     {
         const string usageMessage =
             "Usage: dotnet SortTask.Sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file>";
-        const int numOphWOrds = 4;
-        const int bTreeOrder = 10;
 
         if (settings.ShowHelp)
         {
@@ -93,8 +91,8 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 unsortedFilePath: settings.UnsortedFilePath,
                 indexFilePath: settings.IndexFilePath,
                 sortedFilePath: settings.SortedFilePath,
-                order: new BTreeOrder(bTreeOrder),
-                new Oph(numOphWOrds));
+                order: new BTreeOrder(AdapterConst.BTreeOrder),
+                new Oph(AdapterConst.NumIndexOphWords));
 
             foreach (var initializer in compositionRoot.Initializers)
             {

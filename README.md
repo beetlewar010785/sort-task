@@ -13,3 +13,7 @@ FILE_SIZE=10737418
 
 FILE_SIZE=1073741899
 00:34:55.8623078
+
+dotnet add package StyleCop.Analyzers
+dotnet add package Microsoft.CodeAnalysis.FxCopAnalyzers
+dotnet tool install -g dotnet-format

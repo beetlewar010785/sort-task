@@ -132,7 +132,7 @@ public class IndexerTests
                     new Row(38680, "Djibouti Franc Money Market Account")
                 ],
                 new BTreeOrder(2),
-                Encoding.UTF8))
+                    Encoding.UTF8))
             .SetName("Predefined rows");
 
 
