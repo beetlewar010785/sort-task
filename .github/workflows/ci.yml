@@ -25,6 +25,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    needs: lint
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -41,8 +42,9 @@ jobs:
         run: make test
 
   publish:
-    name: Build and Publish
+    name: Build and Publish for E2E
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -56,11 +58,18 @@ jobs:
         run: dotnet restore
 
       - name: Build and Publish
-        run: BUILD_DIR=/app/bin make build
+        run: BUILD_DIR=/app/bin make publish
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: built-binaries
+          path: /app/bin
 
   e2e-src:
     name: End-to-End Test (Source Build)
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -73,18 +82,22 @@ jobs:
           UNSORTED_FILE=/app/output/unsorted \
           INDEX_FILE=/app/output/index \
           SORTED_FILE=/app/output/sorted \
-          FILE_SIZE=1000000 \
+          FILE_SIZE=1000000000 \
           make run-src
 
   e2e-bin:
     name: End-to-End Test (Binary Build)
     runs-on: ubuntu-latest
+    needs: publish
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Build
-        run: BUILD_DIR=/app/bin make build
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: built-binaries
+          path: /app/bin
 
       - name: Prepare Directories
         run: mkdir -p /app/output
@@ -94,6 +107,6 @@ jobs:
           UNSORTED_FILE=/app/output/unsorted \
           INDEX_FILE=/app/output/index \
           SORTED_FILE=/app/output/sorted \
-          FILE_SIZE=1000000 \
+          FILE_SIZE=1000000000 \
           BUILD_DIR=/app/bin \
           make run-bin
