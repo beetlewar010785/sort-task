@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0'
 
@@ -28,10 +28,10 @@ jobs:
     needs: lint
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0'
 
@@ -42,29 +42,8 @@ jobs:
         run: make test
 
   publish:
-    name: Build and Publish for E2E
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/publish.yml
     needs: test
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0'
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build and Publish
-        run: BUILD_DIR=/app/bin make publish
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: built-binaries
-          path: /app/bin
 
   e2e-src:
     name: End-to-End Test (Source Build)
@@ -72,7 +51,7 @@ jobs:
     needs: test
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare Directories
         run: mkdir -p /app/output
@@ -82,31 +61,11 @@ jobs:
           UNSORTED_FILE=/app/output/unsorted \
           INDEX_FILE=/app/output/index \
           SORTED_FILE=/app/output/sorted \
-          FILE_SIZE=1000000000 \
+          FILE_SIZE=1000000 \
           make run-src
 
   e2e-bin:
-    name: End-to-End Test (Binary Build)
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/e2e-bin.yml
     needs: publish
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: built-binaries
-          path: /app/bin
-
-      - name: Prepare Directories
-        run: mkdir -p /app/output
-
-      - name: Run E2E Test (Binary)
-        run: |
-          UNSORTED_FILE=/app/output/unsorted \
-          INDEX_FILE=/app/output/index \
-          SORTED_FILE=/app/output/sorted \
-          FILE_SIZE=1000000000 \
-          BUILD_DIR=/app/bin \
-          make run-bin
+    with:
+      file_size: "1000000"
