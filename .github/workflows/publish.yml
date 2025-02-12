@@ -30,4 +30,5 @@ jobs:
         with:
           name: built-binaries
           path: $GITHUB_WORKSPACE/app/bin/checker
+          if-no-files-found: error
 
