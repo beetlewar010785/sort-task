@@ -64,8 +64,8 @@ jobs:
   #         FILE_SIZE=1000000 \
   #         make run-src
 
-  # e2e-bin:
-  #   uses: ./.github/workflows/e2e-bin.yml
-  #   needs: publish
-  #   with:
-  #     file_size: "1000000"
+  e2e-bin:
+    uses: ./.github/workflows/e2e-bin.yml
+    needs: publish
+    with:
+      file_size: "1000000"
