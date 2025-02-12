@@ -22,6 +22,9 @@ jobs:
       - name: Build and Publish
         run: BUILD_DIR=$GITHUB_WORKSPACE/app/bin make publish
 
+      - name: Debug Bin Contents
+        run: ls -laR $GITHUB_WORKSPACE/app/bin/checker
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
