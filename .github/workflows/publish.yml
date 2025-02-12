@@ -31,3 +31,10 @@ jobs:
           name: built-binaries
           path: $GITHUB_WORKSPACE/app/bin/**/*
 
+      - name: Fail if no artifacts found
+        run: |
+          if [ -z "$(find $GITHUB_WORKSPACE/app/bin -type f -name '*.dll')" ]; then
+            echo "❌ No .dll artifacts found in $GITHUB_WORKSPACE/app/bin!"
+            exit 1
+          fi
+
