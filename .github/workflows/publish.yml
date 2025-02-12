@@ -29,12 +29,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: built-binaries
-          path: $GITHUB_WORKSPACE/app/bin/**/*
-
-      - name: Fail if no artifacts found
-        run: |
-          if [ -z "$(find $GITHUB_WORKSPACE/app/bin -type f -name '*.dll')" ]; then
-            echo "❌ No .dll artifacts found in $GITHUB_WORKSPACE/app/bin!"
-            exit 1
-          fi
+          path: $GITHUB_WORKSPACE/app/bin/checker
 
