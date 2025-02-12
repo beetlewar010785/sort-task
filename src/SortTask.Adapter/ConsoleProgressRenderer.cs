@@ -4,8 +4,10 @@ namespace SortTask.Adapter;
 
 public class ConsoleProgressRenderer : IProgressRenderer
 {
+    private static readonly int WindowWidth = Math.Max(Console.WindowWidth, 50);
+
     private string? _lastRenderedString;
-    private readonly ConsoleProgressStringBuilder _progressBuilder = new(Console.WindowWidth);
+    private readonly ConsoleProgressStringBuilder _progressBuilder = new(WindowWidth);
 
     public void Render(int percent, string text)
     {
@@ -17,7 +19,7 @@ public class ConsoleProgressRenderer : IProgressRenderer
 
         _lastRenderedString = stringToRender;
         Console.SetCursorPosition(0, Console.CursorTop);
-        Console.Write(_lastRenderedString.PadRight(Console.WindowWidth));
+        Console.Write(_lastRenderedString.PadRight(WindowWidth));
     }
 
     public void Complete()
