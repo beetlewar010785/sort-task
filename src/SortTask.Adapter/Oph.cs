@@ -2,22 +2,53 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class UlongOph : IOph<ulong>
+public class Oph(int numWords) : IOph<OphValue>
 {
-    public ulong Hash(ReadOnlyMemory<byte> bytes)
+    public int NumWords => numWords;
+
+    public OphValue Hash(ReadOnlySpan<byte> bytes)
     {
-        Span<byte> b = stackalloc byte[8];
-        var src = bytes.Span;
+        var totalBytes = numWords * 8;
+        Span<byte> b = stackalloc byte[totalBytes];
 
-        var copyLength = Math.Min(src.Length, 8);
-        src[..copyLength].CopyTo(b);
+        var copyLength = Math.Min(bytes.Length, totalBytes);
+        bytes[..copyLength].CopyTo(b);
 
-        ulong hash = 0;
-        for (var i = 0; i < 8; i++)
+        var values = new ulong[numWords];
+
+        for (var i = 0; i < numWords; i++)
         {
-            hash = (hash << 8) | b[i];
+            ulong value = 0;
+            for (var j = 0; j < 8; j++)
+            {
+                value = (value << 8) | b[i * 8 + j];
+            }
+
+            values[i] = value;
         }
 
-        return hash;
+        return new OphValue(values);
+    }
+}
+
+public readonly struct OphValue(ulong[] words)
+{
+    public ulong[] Words { get; } = words;
+}
+
+public class OphComparer : IComparer<OphValue>
+{
+    public int Compare(OphValue x, OphValue y)
+    {
+        if (x.Words.Length != y.Words.Length)
+            throw new ArgumentException($"x words {x.Words.Length} != y words {y.Words.Length}");
+
+        for (var i = 0; i < x.Words.Length; i++)
+        {
+            var result = x.Words[i].CompareTo(y.Words[i]);
+            if (result != 0) return result;
+        }
+
+        return 0;
     }
 }

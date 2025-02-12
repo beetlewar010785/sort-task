@@ -20,11 +20,8 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         (ophReadWriter.Size + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
         sizeof(long) * order.MaxChildren; // Children;
 
-    /// <summary>
-    /// Calculates position in the stream where the node with the specified nodeIndex should be inserted
-    /// </summary>
-    /// <param name="nodeIndex"></param>
-    /// <returns></returns>
+    private bool _dirty;
+
     public long CalculateNodePosition(long nodeIndex)
     {
         return HeaderSize + nodeIndex * _nodeSize;
@@ -32,6 +29,8 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
 
     public async Task<StreamBTreeHeader> ReadHeader(CancellationToken cancellationToken)
     {
+        await FlushIfRequired(cancellationToken);
+
         stream.Position = 0;
         var buf = new byte[HeaderSize];
         await stream.ReadExactAsync(buf, cancellationToken);
@@ -50,11 +49,14 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
 
         stream.Position = 0;
         await stream.WriteAsync(buf, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        _dirty = true;
+        //await stream.FlushAsync(cancellationToken);
     }
 
     public async Task<BTreeNode<TOphValue>> ReadNode(long id, CancellationToken cancellationToken)
     {
+        await FlushIfRequired(cancellationToken);
+
         stream.Position = id;
         var buf = new byte[_nodeSize];
         await stream.ReadExactAsync(buf, cancellationToken);
@@ -84,7 +86,16 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
 
         stream.Position = node.Id;
         await stream.WriteAsync(buf, cancellationToken);
-        await stream.FlushAsync(cancellationToken);
+        _dirty = true;
+        //await stream.FlushAsync(cancellationToken);
+    }
+
+    private async Task FlushIfRequired(CancellationToken token)
+    {
+        if (!_dirty) return;
+
+        await stream.FlushAsync(token);
+        _dirty = false;
     }
 
     private int WriteIndices(IEnumerable<BTreeIndex<TOphValue>> indices, Span<byte> target, int position)

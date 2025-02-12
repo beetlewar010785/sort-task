@@ -5,7 +5,10 @@ namespace SortTask.Adapter;
 
 public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
 {
-    private readonly ConcurrentLru<long, Row> _lru = new(1, capacity, EqualityComparer<long>.Default);
+    private readonly ConcurrentLru<long, Row> _lru = new(
+        1,
+        capacity,
+        EqualityComparer<long>.Default);
 
     public long FindRowSkipCount { get; private set; }
     public long FindRowExecuteCount { get; private set; }

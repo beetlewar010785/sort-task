@@ -13,7 +13,7 @@ public class CompositionRoot<TOphValue>(
         buildIndexCommand,
     ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result>
         sortRowsCommand,
-    OphCollisionDetector<TOphValue> ulongOphCollisionDetector,
+    OphCollisionDetector<TOphValue> ophCollisionDetector,
     RowLookupCache rowLookupCache,
     BTreeStoreCache<TOphValue> bTreeStoreCache,
     IList<IDisposable> disposables,
@@ -26,7 +26,7 @@ public class CompositionRoot<TOphValue>(
     public ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result>
         SortRowsCommand => sortRowsCommand;
 
-    public OphCollisionDetector<TOphValue> CollisionDetector => ulongOphCollisionDetector;
+    public OphCollisionDetector<TOphValue> CollisionDetector => ophCollisionDetector;
 
     public RowLookupCache RowLookupCache => rowLookupCache;
 
@@ -34,11 +34,12 @@ public class CompositionRoot<TOphValue>(
 
     public IEnumerable<IInitializer> Initializers => initializers;
 
-    public static CompositionRoot<ulong> BuildUlong(
+    public static CompositionRoot<OphValue> Build(
         string unsortedFilePath,
         string indexFilePath,
         string sortedFilePath,
-        BTreeOrder order
+        BTreeOrder order,
+        Oph oph
     )
     {
         return Build(
@@ -46,8 +47,9 @@ public class CompositionRoot<TOphValue>(
             indexFilePath,
             sortedFilePath,
             order,
-            new UlongOph(),
-            new UlongOphReadWriter());
+            oph,
+            new OphReadWriter(oph.NumWords),
+            new OphComparer());
     }
 
     private static CompositionRoot<T> Build<T>(
@@ -56,7 +58,8 @@ public class CompositionRoot<TOphValue>(
         string sortedFilePath,
         BTreeOrder order,
         IOph<T> oph,
-        IOphReadWriter<T> ophReadWriter)
+        IOphReadWriter<T> ophReadWriter,
+        IComparer<T> ophComparer)
         where T : struct
     {
         var encoding = AdapterConst.Encoding;
@@ -70,7 +73,7 @@ public class CompositionRoot<TOphValue>(
         var rowLookup = new StreamRowStore(unsortedFile, encoding);
         var lookup = new RowLookupCache(rowLookup);
 
-        var ophCollisionDetector = new OphCollisionDetector<T>(Comparer<T>.Default);
+        var ophCollisionDetector = new OphCollisionDetector<T>(ophComparer);
         var indexer = new Indexer<T>(
             store,
             new BTreeIndexComparer<T>(ophCollisionDetector, new RowComparer(), lookup),

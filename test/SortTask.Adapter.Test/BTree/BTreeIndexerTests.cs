@@ -11,9 +11,11 @@ public class IndexerTests
     [TestCaseSource(nameof(SortingCases))]
     public async Task Should_Build_Sorted_Index(TestCase testCase)
     {
+        const int ophWords = 1;
+
         // Prepare incoming rows - move them from array to the stream.
         using var unsortedRowStream = new MemoryStream();
-        var oph = new UlongOph();
+        var oph = new Oph(ophWords);
         var unsortedStreamRowReadWriter = new StreamRowStore(unsortedRowStream, testCase.Encoding);
         foreach (var row in testCase.Rows)
         {
@@ -24,13 +26,14 @@ public class IndexerTests
         // Indexing rows
         using var indexStream = new MemoryStream();
         var rowComparer = new RowComparer();
-        var indexComparer = new BTreeIndexComparer<ulong>(Comparer<ulong>.Default, rowComparer, unsortedStreamRowReadWriter);
-        var ophReadWriter = new UlongOphReadWriter();
-        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter<ulong>(indexStream, testCase.Order, ophReadWriter);
-        var store = new StreamBTreeStore<ulong>(bTreeNodeReadWriter);
+        var ophComparer = new OphComparer();
+        var indexComparer = new BTreeIndexComparer<OphValue>(ophComparer, rowComparer, unsortedStreamRowReadWriter);
+        var ophReadWriter = new OphReadWriter(ophWords);
+        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter<OphValue>(indexStream, testCase.Order, ophReadWriter);
+        var store = new StreamBTreeStore<OphValue>(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
-        var sut = new Indexer<ulong>(
+        var sut = new Indexer<OphValue>(
             store,
             indexComparer,
             testCase.Order,
@@ -48,7 +51,7 @@ public class IndexerTests
                 row.Length,
                 CancellationToken.None));
 
-        var traverser = new BTreeIndexTraverser<ulong>(store);
+        var traverser = new BTreeIndexTraverser<OphValue>(store);
         var sortedRows = await traverser
             .IterateAsAsyncEnumerable(CancellationToken.None)
             .SelectAwait(async index =>

@@ -6,7 +6,7 @@ namespace SortTask.Domain;
 public interface IOph<out TOphValue>
     where TOphValue : struct
 {
-    public TOphValue Hash(ReadOnlyMemory<byte> bytes);
+    public TOphValue Hash(ReadOnlySpan<byte> bytes);
 }
 
 public class OphCollisionDetector<TOphValue>(IComparer<TOphValue> inner) : Comparer<TOphValue>
@@ -27,11 +27,3 @@ public class OphCollisionDetector<TOphValue>(IComparer<TOphValue> inner) : Compa
         return result;
     }
 }
-
-// public class OphUlongComparer : IComparer<OphUlongValue>
-// {
-//     public int Compare(OphUlongValue x, OphUlongValue y)
-//     {
-//         return x.Value.CompareTo(y.Value);
-//     }
-// }

@@ -3,11 +3,17 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.BTree;
 
-public class BTreeStoreCache<TOphValue>(IBTreeStore<TOphValue> inner, int capacity = 100000) : IBTreeStore<TOphValue>
+public class BTreeStoreCache<TOphValue>(
+    IBTreeStore<TOphValue> inner,
+    int capacity = 100000) : IBTreeStore<TOphValue>
     where TOphValue : struct
 {
     private long? _rootId;
-    private readonly ConcurrentLru<long, BTreeNode<TOphValue>> _lru = new(1, capacity, EqualityComparer<long>.Default);
+
+    private readonly ConcurrentLru<long, BTreeNode<TOphValue>> _lru = new(
+        1,
+        capacity,
+        EqualityComparer<long>.Default);
 
     public long GetNodeSkipCount { get; private set; }
     public long GetNodeExecuteCount { get; private set; }

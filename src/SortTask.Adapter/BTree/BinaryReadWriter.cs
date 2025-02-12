@@ -29,14 +29,14 @@ public static class BinaryReadWriter
         return position + sizeof(ulong);
     }
 
-    public static (ulong, int) ReadUong(ReadOnlySpan<byte> buf, int position)
+    public static (ulong, int) ReadUlong(ReadOnlySpan<byte> buf, int position)
     {
         return (BitConverter.ToUInt64(buf[position..]), position + sizeof(ulong));
     }
 
-    public static int WriteInt(int count, Span<byte> target, int position)
+    public static int WriteInt(int value, Span<byte> target, int position)
     {
-        if (!BitConverter.TryWriteBytes(target[position..], count))
+        if (!BitConverter.TryWriteBytes(target[position..], value))
         {
             throw new Exception("Failed to write int.");
         }
@@ -47,5 +47,17 @@ public static class BinaryReadWriter
     public static (int, int) ReadInt(ReadOnlySpan<byte> buf, int position)
     {
         return (BitConverter.ToInt32(buf[position..]), position + sizeof(int));
+    }
+
+    public static int WriteBytes(byte[] value, Span<byte> target, int position)
+    {
+        value.CopyTo(target.Slice(position, value.Length));
+        return position + value.Length;
+    }
+
+    public static (byte[], int) ReadBytes(ReadOnlySpan<byte> buf, int count, int position)
+    {
+        var result = buf.Slice(position, count).ToArray();
+        return (result, position + count);
     }
 }

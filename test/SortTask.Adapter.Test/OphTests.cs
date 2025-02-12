@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Text;
 using Bogus;
 
@@ -9,24 +8,26 @@ public class UlongOphTests
     [TestCaseSource(nameof(TestCases))]
     public void Should_Preserve_Order(Encoding encoding, int numStrings)
     {
-        var sut = new UlongOph();
-
         Faker faker = new();
-        var strings = Enumerable.Range(0, numStrings)
+        var initialStrings = Enumerable.Range(0, numStrings)
             .Select(_ => faker.Random.Words(1))
             .ToList();
-        strings.Sort(string.CompareOrdinal);
+        initialStrings.Sort(string.CompareOrdinal);
 
-        var hashes = strings.Select(s => sut.Hash(encoding.GetBytes(s)));
+        var comparer = new OphComparer();
 
-        Assert.That(hashes, Is.Ordered.Using(Comparer.Default), string.Join(";", strings));
+        var oph = new Oph(2);
+        var hashes = initialStrings
+            .Select(s => oph.Hash(encoding.GetBytes(s)));
+
+        Assert.That(hashes, Is.Ordered.Using(comparer), string.Join(";", initialStrings));
     }
 
     private static IEnumerable<TestCaseData> TestCases() =>
     [
         new(Encoding.ASCII, 1000),
-        new(Encoding.UTF8, 1000),
-        new(Encoding.Unicode, 1000),
-        new(Encoding.UTF8, 1000),
+        new(Encoding.UTF8, 2000),
+        new(Encoding.Unicode, 3000),
+        new(Encoding.UTF8, 4000)
     ];
 }

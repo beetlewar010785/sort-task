@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
 using SortTask.Adapter;
-using SortTask.Adapter.BTree;
 using SortTask.Application;
 using SortTask.Domain.BTree;
 using Spectre.Console;
@@ -41,9 +40,9 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        const string
-            usageMessage =
-                "Usage: sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
+        const string usageMessage =
+            "Usage: sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file> -o <btree-order>"; // fix sorter app name
+        const int numOphWOrds = 2;
 
         if (settings.ShowHelp)
         {
@@ -101,11 +100,12 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            using var compositionRoot = CompositionRoot<ulong>.BuildUlong(
+            using var compositionRoot = CompositionRoot<OphValue>.Build(
                 unsortedFilePath: settings.UnsortedFilePath,
                 indexFilePath: settings.IndexFilePath,
                 sortedFilePath: settings.SortedFilePath,
-                order: new BTreeOrder(settings.BTreeOrder));
+                order: new BTreeOrder(settings.BTreeOrder),
+                new Oph(numOphWOrds));
 
             foreach (var initializer in compositionRoot.Initializers)
             {
