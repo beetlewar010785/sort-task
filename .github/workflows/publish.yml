@@ -20,15 +20,12 @@ jobs:
         run: dotnet restore
 
       - name: Build and Publish
-        run: BUILD_DIR=$GITHUB_WORKSPACE/app/bin make publish
-
-      - name: Debug Bin Contents
-        run: ls -laR $GITHUB_WORKSPACE/app/bin/checker
+        run: BUILD_DIR=./bin make publish
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: built-binaries
-          path: $GITHUB_WORKSPACE/app/bin/checker
+          path: ./bin
           if-no-files-found: error
 
