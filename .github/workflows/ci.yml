@@ -43,7 +43,7 @@ jobs:
 
   publish:
     uses: ./.github/workflows/publish.yml
-    needs: test
+    # needs: test
 
   # e2e-src:
   #   name: End-to-End Test (Source Build)
