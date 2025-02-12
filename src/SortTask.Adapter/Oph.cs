@@ -2,9 +2,9 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class Oph : IOph
+public class UlongOph : IOph<ulong>
 {
-    public OphULong Hash(ReadOnlyMemory<byte> bytes)
+    public ulong Hash(ReadOnlyMemory<byte> bytes)
     {
         Span<byte> b = stackalloc byte[8];
         var src = bytes.Span;
@@ -18,6 +18,6 @@ public class Oph : IOph
             hash = (hash << 8) | b[i];
         }
 
-        return new OphULong(hash);
+        return hash;
     }
 }

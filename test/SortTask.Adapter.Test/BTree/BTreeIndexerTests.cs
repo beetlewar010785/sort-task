@@ -13,7 +13,7 @@ public class IndexerTests
     {
         // Prepare incoming rows - move them from array to the stream.
         using var unsortedRowStream = new MemoryStream();
-        var oph = new Oph();
+        var oph = new UlongOph();
         var unsortedStreamRowReadWriter = new StreamRowStore(unsortedRowStream, testCase.Encoding);
         foreach (var row in testCase.Rows)
         {
@@ -24,12 +24,13 @@ public class IndexerTests
         // Indexing rows
         using var indexStream = new MemoryStream();
         var rowComparer = new RowComparer();
-        var indexComparer = new BTreeIndexComparer(new OphComparer(), rowComparer, unsortedStreamRowReadWriter);
-        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter(indexStream, testCase.Order);
-        var store = new StreamBTreeStore(bTreeNodeReadWriter);
+        var indexComparer = new BTreeIndexComparer<ulong>(Comparer<ulong>.Default, rowComparer, unsortedStreamRowReadWriter);
+        var ophReadWriter = new UlongOphReadWriter();
+        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter<ulong>(indexStream, testCase.Order, ophReadWriter);
+        var store = new StreamBTreeStore<ulong>(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
-        var sut = new Indexer(
+        var sut = new Indexer<ulong>(
             store,
             indexComparer,
             testCase.Order,
@@ -47,7 +48,7 @@ public class IndexerTests
                 row.Length,
                 CancellationToken.None));
 
-        var traverser = new BTreeIndexTraverser(store);
+        var traverser = new BTreeIndexTraverser<ulong>(store);
         var sortedRows = await traverser
             .IterateAsAsyncEnumerable(CancellationToken.None)
             .SelectAwait(async index =>

@@ -1,9 +1,12 @@
-using SortTask.Domain;
 using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.BTree;
 
-public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
+public class StreamBTreeNodeReadWriter<TOphValue>(
+    Stream stream,
+    BTreeOrder order,
+    IOphReadWriter<TOphValue> ophReadWriter)
+    where TOphValue : struct
 {
     private static int HeaderSize =>
         sizeof(long) + // RootId
@@ -14,7 +17,7 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         sizeof(long) + // ParentId
         sizeof(int) + // NumIndices
         sizeof(int) + // NumChildren
-        (sizeof(ulong) + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
+        (ophReadWriter.Size + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
         sizeof(long) * order.MaxChildren; // Children;
 
     /// <summary>
@@ -33,8 +36,8 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         var buf = new byte[HeaderSize];
         await stream.ReadExactAsync(buf, cancellationToken);
 
-        var (numNodes, position) = ReadLong(buf, 0);
-        var (rootId, _) = ReadLong(buf, position);
+        var (numNodes, position) = BinaryReadWriter.ReadLong(buf, 0);
+        var (rootId, _) = BinaryReadWriter.ReadLong(buf, position);
 
         return new StreamBTreeHeader(numNodes, rootId == StreamBTreeHeader.NoRootId ? null : rootId);
     }
@@ -42,27 +45,27 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
     public async Task WriteHeader(StreamBTreeHeader header, CancellationToken cancellationToken)
     {
         var buf = new byte[HeaderSize];
-        var position = WriteLong(header.NumNodes, buf, 0);
-        WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
+        var position = BinaryReadWriter.WriteLong(header.NumNodes, buf, 0);
+        BinaryReadWriter.WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
 
         stream.Position = 0;
         await stream.WriteAsync(buf, cancellationToken);
         await stream.FlushAsync(cancellationToken);
     }
 
-    public async Task<BTreeNode> ReadNode(long id, CancellationToken cancellationToken)
+    public async Task<BTreeNode<TOphValue>> ReadNode(long id, CancellationToken cancellationToken)
     {
         stream.Position = id;
         var buf = new byte[_nodeSize];
         await stream.ReadExactAsync(buf, cancellationToken);
         var position = 0;
-        (var parentId, position) = ReadLong(buf, position);
-        (var numIndices, position) = ReadInt(buf, position);
-        (var numChildren, position) = ReadInt(buf, position);
+        (var parentId, position) = BinaryReadWriter.ReadLong(buf, position);
+        (var numIndices, position) = BinaryReadWriter.ReadInt(buf, position);
+        (var numChildren, position) = BinaryReadWriter.ReadInt(buf, position);
         (var indices, position) = ReadIndices(numIndices, buf, position);
         var children = ReadChildren(numChildren, buf, position);
 
-        return new BTreeNode(
+        return new BTreeNode<TOphValue>(
             id,
             parentId == StreamBTreeHeader.NoRootId ? null : parentId,
             children,
@@ -70,12 +73,12 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         );
     }
 
-    public async Task WriteNode(BTreeNode node, CancellationToken cancellationToken)
+    public async Task WriteNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
     {
         var buf = new byte[_nodeSize];
-        var position = WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
-        position = WriteInt(node.Indices.Length, buf, position);
-        position = WriteInt(node.Children.Length, buf, position);
+        var position = BinaryReadWriter.WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
+        position = BinaryReadWriter.WriteInt(node.Indices.Length, buf, position);
+        position = BinaryReadWriter.WriteInt(node.Children.Length, buf, position);
         position = WriteIndices(node.Indices.Values, buf, position);
         _ = WriteChildren(node.Children.Values, buf, position);
 
@@ -84,40 +87,41 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
         await stream.FlushAsync(cancellationToken);
     }
 
-    private static int WriteIndices(IEnumerable<BTreeIndex> indices, Span<byte> target, int position)
+    private int WriteIndices(IEnumerable<BTreeIndex<TOphValue>> indices, Span<byte> target, int position)
     {
         foreach (var index in indices)
         {
-            position = WriteULong(index.SentenceOph.Value, target, position);
-            position = WriteLong(index.Offset, target, position);
-            position = WriteInt(index.Length, target, position);
+            position = ophReadWriter.Write(index.OphValue, target, position);
+            position = BinaryReadWriter.WriteLong(index.Offset, target, position);
+            position = BinaryReadWriter.WriteInt(index.Length, target, position);
         }
 
         return position;
     }
 
-    private static (PositioningCollection<BTreeIndex>, int) ReadIndices(int count, ReadOnlySpan<byte> buf, int position)
+    private (PositioningCollection<BTreeIndex<TOphValue>>, int) ReadIndices(int count, ReadOnlySpan<byte> buf,
+        int position)
     {
-        var indices = new BTreeIndex[count];
+        var indices = new BTreeIndex<TOphValue>[count];
 
         for (var i = 0; i < count; i++)
         {
-            (var sentenceOph, position) = ReadULong(buf, position);
-            (var offset, position) = ReadLong(buf, position);
-            (var length, position) = ReadInt(buf, position);
+            (var ophValue, position) = ophReadWriter.Read(buf, position);
+            (var offset, position) = BinaryReadWriter.ReadLong(buf, position);
+            (var length, position) = BinaryReadWriter.ReadInt(buf, position);
 
-            var index = new BTreeIndex(new OphULong(sentenceOph), offset, length);
+            var index = new BTreeIndex<TOphValue>(ophValue, offset, length);
             indices[i] = index;
         }
 
-        return (new PositioningCollection<BTreeIndex>(indices), position);
+        return (new PositioningCollection<BTreeIndex<TOphValue>>(indices), position);
     }
 
     private static int WriteChildren(IEnumerable<long> children, Span<byte> target, int position)
     {
         foreach (var id in children)
         {
-            position = WriteLong(id, target, position);
+            position = BinaryReadWriter.WriteLong(id, target, position);
         }
 
         return position;
@@ -130,55 +134,10 @@ public class StreamBTreeNodeReadWriter(Stream stream, BTreeOrder order)
 
         for (var i = 0; i < count; i++)
         {
-            (var value, position) = ReadLong(buf, position);
+            (var value, position) = BinaryReadWriter.ReadLong(buf, position);
             children[i] = value;
         }
 
         return new PositioningCollection<long>(children);
-    }
-
-    private static int WriteLong(long value, Span<byte> target, int position)
-    {
-        if (!BitConverter.TryWriteBytes(target[position..], value))
-        {
-            throw new Exception("Failed to write long.");
-        }
-
-        return position + sizeof(long);
-    }
-
-    private static (long, int) ReadLong(ReadOnlySpan<byte> buf, int position)
-    {
-        return (BitConverter.ToInt64(buf[position..]), position + sizeof(long));
-    }
-
-    private static int WriteULong(ulong value, Span<byte> target, int position)
-    {
-        if (!BitConverter.TryWriteBytes(target[position..], value))
-        {
-            throw new Exception("Failed to write ulong.");
-        }
-
-        return position + sizeof(ulong);
-    }
-
-    private static (ulong, int) ReadULong(ReadOnlySpan<byte> buf, int position)
-    {
-        return (BitConverter.ToUInt64(buf[position..]), position + sizeof(ulong));
-    }
-
-    private static int WriteInt(int count, Span<byte> target, int position)
-    {
-        if (!BitConverter.TryWriteBytes(target[position..], count))
-        {
-            throw new Exception("Failed to write int.");
-        }
-
-        return position + sizeof(int);
-    }
-
-    private static (int, int) ReadInt(ReadOnlySpan<byte> buf, int position)
-    {
-        return (BitConverter.ToInt32(buf[position..]), position + sizeof(int));
     }
 }

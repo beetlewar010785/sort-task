@@ -1,44 +1,37 @@
 namespace SortTask.Domain;
 
-public readonly struct OphULong(ulong value)
-{
-    public ulong Value => value;
-
-    public override string ToString()
-    {
-        return $"{value:D20}";
-    }
-}
-
 /// <summary>
 /// Order-Preserving Hashing
 /// </summary>
-public interface IOph
+public interface IOph<out TOphValue>
+    where TOphValue : struct
 {
-    public OphULong Hash(ReadOnlyMemory<byte> bytes);
+    public TOphValue Hash(ReadOnlyMemory<byte> bytes);
 }
 
-public class OphCollisionDetector(IComparer<OphULong> inner) : Comparer<OphULong>
+public class OphCollisionDetector<TOphValue>(IComparer<TOphValue> inner) : Comparer<TOphValue>
+    where TOphValue : struct
 {
     public long CollisionCount { get; private set; }
     public long ComparisonCount { get; private set; }
 
-    public override int Compare(OphULong x, OphULong y)
+    public override int Compare(TOphValue x, TOphValue y)
     {
+        var result = inner.Compare(x, y);
         ComparisonCount++;
-        if (x.Value.CompareTo(y.Value) == 0)
+        if (result == 0)
         {
             CollisionCount++;
         }
 
-        return inner.Compare(x, y);
+        return result;
     }
 }
 
-public class OphComparer : IComparer<OphULong>
-{
-    public int Compare(OphULong x, OphULong y)
-    {
-        return x.Value.CompareTo(y.Value);
-    }
-}
+// public class OphUlongComparer : IComparer<OphUlongValue>
+// {
+//     public int Compare(OphUlongValue x, OphUlongValue y)
+//     {
+//         return x.Value.CompareTo(y.Value);
+//     }
+// }

@@ -1,15 +1,15 @@
 namespace SortTask.Domain.BTree;
 
-public readonly struct BTreeNode(
+public readonly struct BTreeNode<TOphValue>(
     long id,
     long? parentId,
     PositioningCollection<long> children,
-    PositioningCollection<BTreeIndex> indices
-)
+    PositioningCollection<BTreeIndex<TOphValue>> indices
+) where TOphValue : struct
 {
     public long Id => id;
     public long? ParentId => parentId;
-    public PositioningCollection<BTreeIndex> Indices => indices;
+    public PositioningCollection<BTreeIndex<TOphValue>> Indices => indices;
     public PositioningCollection<long> Children => children;
 
     public override string ToString()

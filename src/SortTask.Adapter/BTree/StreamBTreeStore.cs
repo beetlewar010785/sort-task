@@ -3,8 +3,8 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.BTree;
 
-public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
-    : IBTreeStore, IInitializer
+public class StreamBTreeStore<TOphValue>(StreamBTreeNodeReadWriter<TOphValue> bTreeNodeReadWriter)
+    : IBTreeStore<TOphValue>, IInitializer where TOphValue : struct
 {
     public Task Initialize(CancellationToken cancellationToken)
     {
@@ -16,11 +16,11 @@ public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
         var header = await bTreeNodeReadWriter.ReadHeader(cancellationToken);
         var newNodePosition = bTreeNodeReadWriter.CalculateNodePosition(header.NumNodes);
 
-        var emptyNode = new BTreeNode(
+        var emptyNode = new BTreeNode<TOphValue>(
             newNodePosition,
             null,
             new PositioningCollection<long>([]),
-            new PositioningCollection<BTreeIndex>([])
+            new PositioningCollection<BTreeIndex<TOphValue>>([])
         );
         await SaveNode(emptyNode, cancellationToken);
         await bTreeNodeReadWriter.WriteHeader(header.IncrementNodes(), cancellationToken);
@@ -40,12 +40,12 @@ public class StreamBTreeStore(StreamBTreeNodeReadWriter bTreeNodeReadWriter)
         await bTreeNodeReadWriter.WriteHeader(header.SetRoot(id), cancellationToken);
     }
 
-    public Task<BTreeNode> GetNode(long id, CancellationToken cancellationToken)
+    public Task<BTreeNode<TOphValue>> GetNode(long id, CancellationToken cancellationToken)
     {
         return bTreeNodeReadWriter.ReadNode(id, cancellationToken);
     }
 
-    public Task SaveNode(BTreeNode node, CancellationToken cancellationToken)
+    public Task SaveNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
     {
         return bTreeNodeReadWriter.WriteNode(node, cancellationToken);
     }

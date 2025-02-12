@@ -2,9 +2,10 @@ using System.Runtime.CompilerServices;
 
 namespace SortTask.Domain.BTree;
 
-public class BTreeIndexTraverser(IBTreeStore store) : IBTreeIndexTraverser
+public class BTreeIndexTraverser<TOphValue>(IBTreeStore<TOphValue> store) : IBTreeIndexTraverser<TOphValue>
+    where TOphValue : struct
 {
-    public async IAsyncEnumerable<BTreeIndex> IterateAsAsyncEnumerable(
+    public async IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var rootId = await store.GetRoot(cancellationToken);
@@ -18,8 +19,8 @@ public class BTreeIndexTraverser(IBTreeStore store) : IBTreeIndexTraverser
         }
     }
 
-    private async IAsyncEnumerable<BTreeIndex> IterateAsAsyncEnumerable(
-        BTreeNode node,
+    private async IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(
+        BTreeNode<TOphValue> node,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         for (var i = 0; i < node.Indices.Length + 1; i++) // +1 - for children traverse

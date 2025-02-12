@@ -1,6 +1,7 @@
 namespace SortTask.Domain.BTree;
 
-public interface IBTreeIndexTraverser
+public interface IBTreeIndexTraverser<TOphValue>
+where TOphValue: struct
 {
-    IAsyncEnumerable<BTreeIndex> IterateAsAsyncEnumerable(CancellationToken cancellationToken);
+    IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(CancellationToken cancellationToken);
 }

@@ -1,13 +1,16 @@
 namespace SortTask.Domain.BTree;
 
-public class BTreeIndexComparer(
-    IComparer<OphULong> sentenceComparer,
+public class BTreeIndexComparer<TOphValue>(
+    IComparer<TOphValue> ophComparer,
     IComparer<Row> rowComparer,
-    IRowLookup rowLookup) : IBTreeIndexComparer
+    IRowLookup rowLookup) : IBTreeIndexComparer<TOphValue> where TOphValue : struct
 {
-    public async Task<int> Compare(BTreeIndex x, BTreeIndex y, CancellationToken cancellationToken)
+    public async Task<int> Compare(
+        BTreeIndex<TOphValue> x,
+        BTreeIndex<TOphValue> y,
+        CancellationToken cancellationToken)
     {
-        var compareResult = sentenceComparer.Compare(x.SentenceOph, y.SentenceOph);
+        var compareResult = ophComparer.Compare(x.OphValue, y.OphValue);
         if (compareResult != 0)
         {
             return compareResult;

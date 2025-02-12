@@ -2,19 +2,20 @@ using System.Text;
 
 namespace SortTask.Domain.BTree;
 
-public class Indexer(
-    IBTreeStore store,
-    IBTreeIndexComparer indexComparer,
+public class Indexer<TOphValue>(
+    IBTreeStore<TOphValue> store,
+    IBTreeIndexComparer<TOphValue> indexComparer,
     BTreeOrder order,
-    IOph oph,
+    IOph<TOphValue> oph,
     Encoding encoding
 ) : IIndexer
+    where TOphValue : struct
 {
     public async Task Index(Row row, long offset, int length, CancellationToken cancellationToken)
     {
         var sentenceBytes = encoding.GetBytes(row.Sentence);
         var ophHash = oph.Hash(sentenceBytes);
-        var index = new BTreeIndex(ophHash, offset, length);
+        var index = new BTreeIndex<TOphValue>(ophHash, offset, length);
 
         var rootId = await store.GetRoot(cancellationToken);
         if (rootId == null)
@@ -29,13 +30,13 @@ public class Indexer(
     }
 
     private async Task InserBTreeIndex(
-        BTreeNode targetBTreeNode,
+        BTreeNode<TOphValue> targetBTreeNode,
         int position,
-        BTreeIndex index,
+        BTreeIndex<TOphValue> index,
         CancellationToken cancellationToken)
     {
         var newIndices = targetBTreeNode.Indices.Insert(index, position);
-        targetBTreeNode = new BTreeNode(
+        targetBTreeNode = new BTreeNode<TOphValue>(
             targetBTreeNode.Id,
             targetBTreeNode.ParentId,
             targetBTreeNode.Children,
@@ -45,7 +46,7 @@ public class Indexer(
         await CheckOverflow(targetBTreeNode, cancellationToken);
     }
 
-    private async Task CheckOverflow(BTreeNode node, CancellationToken cancellationToken)
+    private async Task CheckOverflow(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
     {
         while (true)
         {
@@ -57,7 +58,7 @@ public class Indexer(
             var splitResult = SplitNode(node);
             var rightId = await store.AllocateId(cancellationToken);
 
-            BTreeNode? parent = null;
+            BTreeNode<TOphValue>? parent = null;
             if (node.ParentId.HasValue)
             {
                 parent = await store.GetNode(node.ParentId.Value, cancellationToken);
@@ -86,9 +87,9 @@ public class Indexer(
             await CreateOrUpdateNode(
                 nodeId: node.Id,
                 newParentId: parent.Value.Id,
-                newChildren: splitResult.LeftChildren, 
+                newChildren: splitResult.LeftChildren,
                 newIndices: splitResult.LeftIndices,
-                childrenParentIdChanged: false, 
+                childrenParentIdChanged: false,
                 cancellationToken);
 
             await CreateOrUpdateNode(
@@ -96,7 +97,7 @@ public class Indexer(
                 newParentId: parent.Value.Id,
                 newChildren: splitResult.RightChildren,
                 newIndices: splitResult.RightIndices,
-                childrenParentIdChanged: true, 
+                childrenParentIdChanged: true,
                 cancellationToken);
 
             // repeat recursively until we reach the root or find a node that is not overflowed
@@ -104,23 +105,23 @@ public class Indexer(
         }
     }
 
-    private static SplitBTreeNodeResult SplitNode(BTreeNode node)
+    private static SplitBTreeNodeResult SplitNode(BTreeNode<TOphValue> node)
     {
         var midIndex = node.Indices.Length / 2;
         var midChild = node.Children.Length / 2;
         var popupIndex = node.Indices[midIndex];
         return new SplitBTreeNodeResult(
             new PositioningCollection<long>(node.Children.Values.Take(midChild).ToArray()),
-            new PositioningCollection<BTreeIndex>(node.Indices.Values.Take(midIndex).ToArray()),
+            new PositioningCollection<BTreeIndex<TOphValue>>(node.Indices.Values.Take(midIndex).ToArray()),
             new PositioningCollection<long>(node.Children.Values.Skip(midChild).ToArray()),
-            new PositioningCollection<BTreeIndex>(node.Indices.Values.Skip(midIndex + 1).ToArray()),
+            new PositioningCollection<BTreeIndex<TOphValue>>(node.Indices.Values.Skip(midIndex + 1).ToArray()),
             popupIndex
         );
     }
 
-    private async Task<BTreeNode> AddIndexAndNodeToParent(
-        BTreeNode parent,
-        BTreeIndex insertingIndex,
+    private async Task<BTreeNode<TOphValue>> AddIndexAndNodeToParent(
+        BTreeNode<TOphValue> parent,
+        BTreeIndex<TOphValue> insertingIndex,
         long insertingNode,
         long insertAfterNode,
         CancellationToken cancellationToken)
@@ -132,7 +133,7 @@ public class Indexer(
 
         var newIndices = parent.Indices.Insert(insertingIndex, target.Position);
 
-        parent = new BTreeNode(
+        parent = new BTreeNode<TOphValue>(
             parent.Id,
             parent.ParentId,
             newChildren,
@@ -143,17 +144,17 @@ public class Indexer(
         return parent;
     }
 
-    private async Task<BTreeNode> CreateNewRoot(
-        BTreeIndex index,
+    private async Task<BTreeNode<TOphValue>> CreateNewRoot(
+        BTreeIndex<TOphValue> index,
         PositioningCollection<long> children,
         CancellationToken cancellationToken)
     {
         var rootId = await store.AllocateId(cancellationToken);
-        var root = new BTreeNode(
+        var root = new BTreeNode<TOphValue>(
             rootId,
             null,
             children,
-            new PositioningCollection<BTreeIndex>([index])
+            new PositioningCollection<BTreeIndex<TOphValue>>([index])
         );
         await store.SaveNode(root, cancellationToken);
         await store.SetRoot(root.Id, cancellationToken);
@@ -164,12 +165,12 @@ public class Indexer(
         long nodeId,
         long newParentId,
         PositioningCollection<long> newChildren,
-        PositioningCollection<BTreeIndex> newIndices,
+        PositioningCollection<BTreeIndex<TOphValue>> newIndices,
         bool childrenParentIdChanged,
         CancellationToken cancellationToken
     )
     {
-        var node = new BTreeNode(
+        var node = new BTreeNode<TOphValue>(
             nodeId,
             newParentId,
             newChildren,
@@ -183,7 +184,7 @@ public class Indexer(
             foreach (var childId in newChildren.Values)
             {
                 var child = await store.GetNode(childId, cancellationToken);
-                child = new BTreeNode(
+                child = new BTreeNode<TOphValue>(
                     child.Id,
                     nodeId,
                     child.Children,
@@ -194,7 +195,8 @@ public class Indexer(
         }
     }
 
-    private async Task<FindTargetResult> FindTarget(BTreeIndex insertingIndex, BTreeNode searchInNode,
+    private async Task<FindTargetResult> FindTarget(BTreeIndex<TOphValue> insertingIndex,
+        BTreeNode<TOphValue> searchInNode,
         CancellationToken cancellationToken)
     {
         while (true)
@@ -224,7 +226,7 @@ public class Indexer(
         }
     }
 
-    private async Task<FindTargetResult> FindTargetIn(BTreeIndex index, BTreeNode target,
+    private async Task<FindTargetResult> FindTargetIn(BTreeIndex<TOphValue> index, BTreeNode<TOphValue> target,
         CancellationToken cancellationToken)
     {
         for (var i = 0; i < target.Indices.Length; i++)
@@ -242,26 +244,26 @@ public class Indexer(
         return new FindTargetResult(target, target.Indices.Length);
     }
 
-    private readonly struct FindTargetResult(BTreeNode target, int position)
+    private readonly struct FindTargetResult(BTreeNode<TOphValue> target, int position)
     {
-        public BTreeNode Target { get; } = target;
+        public BTreeNode<TOphValue> Target { get; } = target;
         public int Position { get; } = position;
     }
 
-    // we cannot return BTreeNode because we do not have parent id yet
+    // we cannot return BTreeNode<TOphValue> because we do not have parent id yet
     // parent may be created based on the result of this method
     private readonly struct SplitBTreeNodeResult(
         PositioningCollection<long> leftChildren,
-        PositioningCollection<BTreeIndex> leftIndices,
+        PositioningCollection<BTreeIndex<TOphValue>> leftIndices,
         PositioningCollection<long> rightChildren,
-        PositioningCollection<BTreeIndex> rightIndices,
-        BTreeIndex popupIndex
+        PositioningCollection<BTreeIndex<TOphValue>> rightIndices,
+        BTreeIndex<TOphValue> popupIndex
     )
     {
         public PositioningCollection<long> LeftChildren { get; } = leftChildren;
-        public PositioningCollection<BTreeIndex> LeftIndices { get; } = leftIndices;
+        public PositioningCollection<BTreeIndex<TOphValue>> LeftIndices { get; } = leftIndices;
         public PositioningCollection<long> RightChildren { get; } = rightChildren;
-        public PositioningCollection<BTreeIndex> RightIndices { get; } = rightIndices;
-        public BTreeIndex PopupIndex { get; } = popupIndex;
+        public PositioningCollection<BTreeIndex<TOphValue>> RightIndices { get; } = rightIndices;
+        public BTreeIndex<TOphValue> PopupIndex { get; } = popupIndex;
     }
 }

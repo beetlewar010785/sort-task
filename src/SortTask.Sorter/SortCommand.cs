@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
+using SortTask.Adapter;
+using SortTask.Adapter.BTree;
 using SortTask.Application;
 using SortTask.Domain.BTree;
 using Spectre.Console;
@@ -99,7 +101,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 eventArgs.Cancel = true;
             };
 
-            using var compositionRoot = CompositionRoot.Build(
+            using var compositionRoot = CompositionRoot<ulong>.BuildUlong(
                 unsortedFilePath: settings.UnsortedFilePath,
                 indexFilePath: settings.IndexFilePath,
                 sortedFilePath: settings.SortedFilePath,
@@ -110,11 +112,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 await initializer.Initialize(cts.Token);
             }
 
-            await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand.Param(), cts.Token)
-                .ToListAsync(cancellationToken: cts.Token);
-
-            await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand.Param(), cts.Token)
-                .ToListAsync(cancellationToken: cts.Token);
+            await Execute(compositionRoot, cts.Token);
 
             AnsiConsole.MarkupLine(
                 $"[yellow]Index collisions: [/] {compositionRoot.CollisionDetector.CollisionCount}");
@@ -145,5 +143,15 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
 
         return 0;
+    }
+
+    private static async Task Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
+        where TOphValue : struct
+    {
+        await compositionRoot.BuildIndexCommand.Execute(new BuildIndexCommand.Param(), token)
+            .ToListAsync(cancellationToken: token);
+
+        await compositionRoot.SortRowsCommand.Execute(new SortRowsCommand<TOphValue>.Param(), token)
+            .ToListAsync(cancellationToken: token);
     }
 }

@@ -1,15 +1,15 @@
+using System.Collections;
 using System.Text;
 using Bogus;
-using SortTask.Domain;
 
 namespace SortTask.Adapter.Test;
 
-public class OphTests
+public class UlongOphTests
 {
     [TestCaseSource(nameof(TestCases))]
     public void Should_Preserve_Order(Encoding encoding, int numStrings)
     {
-        var sut = new Oph();
+        var sut = new UlongOph();
 
         Faker faker = new();
         var strings = Enumerable.Range(0, numStrings)
@@ -19,7 +19,7 @@ public class OphTests
 
         var hashes = strings.Select(s => sut.Hash(encoding.GetBytes(s)));
 
-        Assert.That(hashes, Is.Ordered.Using(new OphComparer()), string.Join(";", strings));
+        Assert.That(hashes, Is.Ordered.Using(Comparer.Default), string.Join(";", strings));
     }
 
     private static IEnumerable<TestCaseData> TestCases() =>

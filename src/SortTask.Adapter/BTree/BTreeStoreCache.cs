@@ -3,10 +3,11 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.BTree;
 
-public class BTreeStoreCache(IBTreeStore inner, int capacity = 100000) : IBTreeStore
+public class BTreeStoreCache<TOphValue>(IBTreeStore<TOphValue> inner, int capacity = 100000) : IBTreeStore<TOphValue>
+    where TOphValue : struct
 {
     private long? _rootId;
-    private readonly ConcurrentLru<long, BTreeNode> _lru = new(1, capacity, EqualityComparer<long>.Default);
+    private readonly ConcurrentLru<long, BTreeNode<TOphValue>> _lru = new(1, capacity, EqualityComparer<long>.Default);
 
     public long GetNodeSkipCount { get; private set; }
     public long GetNodeExecuteCount { get; private set; }
@@ -25,7 +26,7 @@ public class BTreeStoreCache(IBTreeStore inner, int capacity = 100000) : IBTreeS
         _rootId = id;
     }
 
-    public async Task<BTreeNode> GetNode(long id, CancellationToken cancellationToken)
+    public async Task<BTreeNode<TOphValue>> GetNode(long id, CancellationToken cancellationToken)
     {
         if (_lru.TryGet(id, out var node))
         {
@@ -41,7 +42,7 @@ public class BTreeStoreCache(IBTreeStore inner, int capacity = 100000) : IBTreeS
         return node;
     }
 
-    public async Task SaveNode(BTreeNode node, CancellationToken cancellationToken)
+    public async Task SaveNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
     {
         await inner.SaveNode(node, cancellationToken);
         _lru.AddOrUpdate(node.Id, node);

@@ -4,11 +4,11 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Application;
 
-public class SortRowsCommand(
-    IBTreeIndexTraverser ibTreeIndexTraverser,
+public class SortRowsCommand<TOphValue>(
+    IBTreeIndexTraverser<TOphValue> indexTraverser,
     IRowLookup rowLookup,
     IRowWriter outputRowWriter
-) : ICommand<SortRowsCommand.Param, SortRowsCommand.Result>
+) : ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result> where TOphValue: struct
 {
     public record Param;
 
@@ -20,7 +20,7 @@ public class SortRowsCommand(
     {
         const string operationName = "Sorting...";
 
-        await foreach (var index in ibTreeIndexTraverser.IterateAsAsyncEnumerable(cancellationToken))
+        await foreach (var index in indexTraverser.IterateAsAsyncEnumerable(cancellationToken))
         {
             var row = await rowLookup.FindRow(index.Offset, index.Length, cancellationToken);
             await outputRowWriter.Write(row, cancellationToken);
