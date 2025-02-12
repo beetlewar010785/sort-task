@@ -1,0 +1,71 @@
+name: CI Pipeline
+
+on:
+  push:
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Linter
+        run: make lint
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Tests
+        run: make test
+
+  publish:
+    uses: ./.github/workflows/publish.yml
+    needs: test
+
+  e2e-src:
+    name: End-to-End Test (Source Build)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Directories
+        run: mkdir -p ./output
+
+      - name: Run E2E Test (Source)
+        run: |
+          UNSORTED_FILE=./output/unsorted \
+          INDEX_FILE=./output/index \
+          SORTED_FILE=./output/sorted \
+          FILE_SIZE=1000000 \
+          make run-src
+
+  e2e-bin:
+    uses: ./.github/workflows/e2e-bin.yml
+    needs: publish
+    with:
+      file_size: "1000000"

@@ -1,0 +1,60 @@
+# Core Visual Studio & .NET artifacts
+bin/
+obj/
+*.user
+*.suo
+*.sln.cache
+*.sln.ide
+*.vsp
+*.vspx
+*.vssscc
+*.vspscc
+
+# Rider & VS Code
+.idea/
+.vscode/
+
+# NuGet & Package Management
+packages/
+*.nupkg
+project.lock.json
+project.assets.json
+
+# Build Outputs
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.ilk
+*.lib
+*.exp
+*.iobj
+*.ipdb
+
+# Logs & Debugging
+*.log
+*.tlog/
+
+# Entity Framework
+Migrations/
+
+# ASP.NET / Blazor artifacts
+appsettings*.json
+wwwroot/
+
+# Publish Outputs
+publish/
+
+# Temporary Files
+*.tmp
+*.bak
+
+# User Secrets (for development)
+secrets.json
+
+# Node Modules (if using Node.js inside .NET project)
+node_modules/
+
+# Python (if using Python scripts)
+*.pyc
+__pycache__/

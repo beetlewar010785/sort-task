@@ -1,0 +1,35 @@
+name: E2E Binary Test
+
+on:
+  workflow_call:
+    inputs:
+      file_size:
+        description: 'Size of the file for E2E test'
+        required: true
+        type: string
+
+jobs:
+  e2e-bin:
+    name: End-to-End Test (Binary Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: built-binaries
+          path: ./bin
+
+      - name: Prepare Directories
+        run: mkdir -p ./output
+
+      - name: Run E2E Test (Binary)
+        run: |
+          UNSORTED_FILE=./output/unsorted \
+          INDEX_FILE=./output/index \
+          SORTED_FILE=./output/sorted \
+          FILE_SIZE=${{ inputs.file_size }} \
+          BUILD_DIR=./bin \
+          make run-bin

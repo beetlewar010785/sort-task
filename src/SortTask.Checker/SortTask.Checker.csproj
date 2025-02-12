@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Spectre.Console.Cli"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\SortTask.Adapter\SortTask.Adapter.csproj"/>
+        <ProjectReference Include="..\SortTask.Application\SortTask.Application.csproj"/>
+    </ItemGroup>
+
+</Project>
