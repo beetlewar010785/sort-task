@@ -3,12 +3,12 @@ using SortTask.Domain;
 
 namespace SortTask.Adapter;
 
-public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
+public class RowLookupCache(IRowLookup inner, int capacity = 1000) : IRowLookup
 {
     private readonly ConcurrentLru<long, Row> _lru = new(1, capacity, EqualityComparer<long>.Default);
 
-    public int FindRowSkipCount { get; private set; }
-    public int FindRowExecuteCount { get; private set; }
+    public long FindRowSkipCount { get; private set; }
+    public long FindRowExecuteCount { get; private set; }
 
     public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
     {

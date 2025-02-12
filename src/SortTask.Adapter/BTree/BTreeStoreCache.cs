@@ -3,13 +3,13 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.BTree;
 
-public class BTreeStoreCache(IBTreeStore inner, int capacity = 100000) : IBTreeStore
+public class BTreeStoreCache(IBTreeStore inner, int capacity = 10000) : IBTreeStore
 {
     private long? _rootId;
     private readonly ConcurrentLru<long, BTreeNode> _lru = new(1, capacity, EqualityComparer<long>.Default);
 
-    public int GetNodeSkipCount { get; private set; }
-    public int GetNodeExecuteCount { get; private set; }
+    public long GetNodeSkipCount { get; private set; }
+    public long GetNodeExecuteCount { get; private set; }
 
     public Task<long> AllocateId(CancellationToken cancellationToken) =>
         inner.AllocateId(cancellationToken);
