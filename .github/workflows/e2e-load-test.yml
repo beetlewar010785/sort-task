@@ -24,3 +24,9 @@ jobs:
     uses: ./.github/workflows/e2e-bin.yml
     with:
       file_size: "10000000000"
+
+  e2e-40GB:
+    needs: publish
+    uses: ./.github/workflows/e2e-bin.yml
+    with:
+      file_size: "40000000000"
