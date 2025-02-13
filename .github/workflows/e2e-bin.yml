@@ -23,13 +23,9 @@ jobs:
           path: ./bin
 
       - name: Prepare Directories
-        run: mkdir -p ./output
+        run: mkdir -p ./bin
 
       - name: Run E2E Test (Binary)
         run: |
-          UNSORTED_FILE=./output/unsorted \
-          INDEX_FILE=./output/index \
-          SORTED_FILE=./output/sorted \
           FILE_SIZE=${{ inputs.file_size }} \
-          BUILD_DIR=./bin \
           make run-bin

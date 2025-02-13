@@ -49,15 +49,7 @@ FILE_SIZE={SIZE_IN_BYTES} make run-src
 make publish && FILE_SIZE={SIZE_IN_BYTES} make run-bin
 ```
 
-🔹 Runs the sorter from the compiled binaries.
-
-### 🏗️ Running from Published Binary
-
-```sh
-dotnet publish -c Release -o ./bin && {FILE_SIZE} ./bin/SortTask.Sorter
-```
-
-🔹 Builds the binary and runs the sorter.
+🔹 Publishes binaries and runs the sorter from the binaries.
 
 The sorted file will be saved in:
 
