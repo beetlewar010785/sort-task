@@ -19,6 +19,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Install JetBrains ReSharper Global Tools
+        run: |
+          dotnet tool install --global JetBrains.ReSharper.GlobalTools
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
       - name: Run Linter
         run: make lint
 
