@@ -2,7 +2,7 @@
 
 ## 📌 Overview
 
-This project implements a **large file sorting system**, designed to efficiently sort files of **unlimited size** (tested on 1GB files). Each line in the file follows the format: **`Number. String`**.
+This project implements a **large file sorting system**, designed to efficiently sort files of **unlimited size** (10GB file has been sorted for 1 hour). Each line in the file follows the format: **`Number. String`**.
 
 The implementation leverages **B-Tree data structures** for optimal sorting performance.
 
