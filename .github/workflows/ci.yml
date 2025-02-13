@@ -54,7 +54,7 @@ jobs:
         run: dotnet restore
 
       - name: Run Tests
-        run: make test
+        run: make run-test
 
   publish:
     uses: ./.github/workflows/publish.yml
