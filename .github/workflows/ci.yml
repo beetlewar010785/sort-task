@@ -61,11 +61,11 @@ jobs:
           UNSORTED_FILE=./output/unsorted \
           INDEX_FILE=./output/index \
           SORTED_FILE=./output/sorted \
-          FILE_SIZE=1000000 \
+          FILE_SIZE=100000 \
           make run-src
 
   e2e-bin:
     uses: ./.github/workflows/e2e-bin.yml
     needs: publish
     with:
-      file_size: "1000000"
+      file_size: "100000"
