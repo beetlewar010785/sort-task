@@ -4,8 +4,8 @@ public class RowGenerationRepeater(
     IRowGenerator inner,
     Random rnd,
     int repeatPeriod = 1000,
-    int maxRepeatNumber = 2,
-    int refreshRepeatingRowsPeriod = 2
+    int maxRepeatNumber = 1,
+    int refreshRepeatingRowsPeriod = 10
 ) : IRowGenerator
 {
     private readonly List<Row> _repeatingRows = [];
