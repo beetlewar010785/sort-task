@@ -8,14 +8,9 @@ public class SortRowsCommand<TOphValue>(
     IBTreeIndexTraverser<TOphValue> indexTraverser,
     IRowLookup rowLookup,
     IRowWriter outputRowWriter
-) : ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result> where TOphValue : struct
+) : ICommand<SortRowsCommand<TOphValue>.Result> where TOphValue : struct
 {
-    public record Param;
-
-    public abstract record Result;
-
     public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        Param param,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         const string operationName = "Sorting...";
@@ -29,4 +24,6 @@ public class SortRowsCommand<TOphValue>(
 
         await outputRowWriter.Flush(cancellationToken);
     }
+
+    public abstract record Result;
 }

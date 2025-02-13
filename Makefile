@@ -1,44 +1,31 @@
-GENERATOR_BIN = $(BUILD_DIR)/generator
-SORTER_BIN = $(BUILD_DIR)/sorter
-CHECKER_BIN = $(BUILD_DIR)/checker
+GENERATOR_BIN = bin/generator
+SORTER_BIN = bin/sorter
+CHECKER_BIN = bin/checker
+
+UNSORTED_FILE = bin/unsorted
+SORTED_FILE = bin/sorted
+INDEX_FILE = bin/index
 
 lint:
 	dotnet format --verify-no-changes
+	jb inspectcode SortTask.sln --output=bin/inspect-results.sarif
 
 lint-fix:
 	dotnet format
+	jb cleanupcode SortTask.sln
 
-test:
-	dotnet test
+run-test:
+	dotnet test --logger:"console;verbosity=normal" --no-restore
 
-check-build-env:
-ifndef BUILD_DIR
-	$(error "ERROR: BUILD_DIR is not set")
-endif
-
-check-run-env:
-ifndef UNSORTED_FILE
-	$(error "ERROR: UNSORTED_FILE is not set")
-endif
-ifndef SORTED_FILE
-	$(error "ERROR: SORTED_FILE is not set")
-endif
-ifndef INDEX_FILE
-	$(error "ERROR: INDEX_FILE is not set")
-endif
-ifndef FILE_SIZE
-	$(error "ERROR: FILE_SIZE is not set")
-endif
-
-publish: check-build-env
-	mkdir -p $(BUILD_DIR)
+publish:
+	mkdir -p bin
 	dotnet publish -c Release -r linux-x64 --self-contained false -o $(GENERATOR_BIN) ./src/SortTask.TestFileCreator
 	dotnet publish -c Release -r linux-x64 --self-contained false -o $(SORTER_BIN) ./src/SortTask.Sorter
 	dotnet publish -c Release -r linux-x64 --self-contained false -o $(CHECKER_BIN) ./src/SortTask.Checker
 
-run-bin: check-run-env generate-bin sort-bin check-bin
+run-bin: generate-bin sort-bin check-bin
 
-generate-bin: check-build-env
+generate-bin:
 	dotnet $(GENERATOR_BIN)/SortTask.TestFileCreator.dll -f $(UNSORTED_FILE) -s $(FILE_SIZE)
 
 sort-bin:
@@ -47,7 +34,7 @@ sort-bin:
 check-bin:
 	dotnet $(CHECKER_BIN)/SortTask.Checker.dll -f $(SORTED_FILE)
 
-run-src: check-run-env generate-src sort-src check-src
+run-src: generate-src sort-src check-src
 
 generate-src:
 	dotnet run --project ./src/SortTask.TestFileCreator -- -f $(UNSORTED_FILE) -s $(FILE_SIZE)
@@ -57,3 +44,7 @@ sort-src:
 
 check-src:
 	dotnet run --project ./src/SortTask.Checker -- -f $(SORTED_FILE)
+
+clean:
+	dotnet clean
+	rm -rf bin obj

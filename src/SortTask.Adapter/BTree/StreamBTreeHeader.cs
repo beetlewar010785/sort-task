@@ -7,7 +7,13 @@ public readonly struct StreamBTreeHeader(long numNodes, long? root)
     public long? Root { get; } = root;
     public long NumNodes { get; } = numNodes;
 
-    public StreamBTreeHeader SetRoot(long newRoot) => new(NumNodes, newRoot);
+    public StreamBTreeHeader SetRoot(long newRoot)
+    {
+        return new StreamBTreeHeader(NumNodes, newRoot);
+    }
 
-    public StreamBTreeHeader IncrementNodes() => new(NumNodes + 1, Root);
+    public StreamBTreeHeader IncrementNodes()
+    {
+        return new StreamBTreeHeader(NumNodes + 1, Root);
+    }
 }

@@ -6,14 +6,9 @@ namespace SortTask.Application;
 public class BuildIndexCommand(
     IRowIterator rowIterator,
     IIndexer indexer
-) : ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
+) : ICommand<BuildIndexCommand.Result>
 {
-    public record Param;
-
-    public abstract record Result;
-
     public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        Param param,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         const string operationName = "Building Index...";
@@ -24,4 +19,6 @@ public class BuildIndexCommand(
             yield return new CommandIteration<Result>(null, operationName);
         }
     }
+
+    public abstract record Result;
 }

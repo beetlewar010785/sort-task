@@ -1,7 +1,7 @@
 namespace SortTask.Domain;
 
 /// <summary>
-/// Order-Preserving Hashing
+///     Order-Preserving Hashing
 /// </summary>
 public interface IOph<out TOphValue>
     where TOphValue : struct
@@ -19,10 +19,7 @@ public class OphCollisionDetector<TOphValue>(IComparer<TOphValue> inner) : Compa
     {
         var result = inner.Compare(x, y);
         ComparisonCount++;
-        if (result == 0)
-        {
-            CollisionCount++;
-        }
+        if (result == 0) CollisionCount++;
 
         return result;
     }

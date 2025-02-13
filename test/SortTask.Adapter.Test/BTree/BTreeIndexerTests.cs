@@ -6,10 +6,10 @@ using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Adapter.Test.BTree;
 
-public class IndexerTests
+public class BTreeIndexerTests
 {
     [TestCaseSource(nameof(SortingCases))]
-    public async Task Should_Build_Sorted_Index(TestCase testCase)
+    public async Task ShouldBuildSortedIndex(TestCase testCase)
     {
         const int ophWords = 1;
 
@@ -33,7 +33,7 @@ public class IndexerTests
         var store = new StreamBTreeStore<OphValue>(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
-        var sut = new Indexer<OphValue>(
+        var sut = new BTreeIndexer<OphValue>(
             store,
             indexComparer,
             testCase.Order,
@@ -61,38 +61,6 @@ public class IndexerTests
         var expectedSortedRows = testCase.Rows.OrderBy(r => r, rowComparer).ToList();
         Assert.That(sortedRows, Is.EqualTo(expectedSortedRows));
     }
-
-    // [TestCaseSource(nameof(SortingCases))]
-    // public async Task Store_Should_Be_Consistent(TestCase testCase)
-    // {
-    //     var store = new MemoryBTreeStore();
-    //
-    //     var rowComparer = new RowComparer();
-    //     var indexComparer = new MemoryBTreeIndexComparer(rowComparer);
-    //
-    //     var indexer = new BTreeIndexer<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(
-    //         store,
-    //         new MemoryBTreeNodeFactory(),
-    //         indexComparer,
-    //         testCase.Order
-    //     );
-    //
-    //     var sut = new BTreeIndexValidator<MemoryBTreeNode, MemoryBTreeIndex, MemoryBTreeNodeId>(
-    //         store,
-    //         new MemoryBTreeRowLookup(),
-    //         rowComparer
-    //     );
-    //
-    //     long position = 0;
-    //     foreach (var row in testCase.Rows)
-    //     {
-    //         await indexer.Index(new MemoryBTreeIndex(row.ToReadRow(position++)), CancellationToken.None);
-    //     }
-    //
-    //     Assert.DoesNotThrowAsync(() => sut.Validate(CancellationToken.None));
-    // }
-
-    public record TestCase(IList<Row> Rows, BTreeOrder Order, Encoding Encoding);
 
     private static IEnumerable<TestCaseData> SortingCases()
     {
@@ -132,7 +100,7 @@ public class IndexerTests
                     new Row(38680, "Djibouti Franc Money Market Account")
                 ],
                 new BTreeOrder(2),
-                    Encoding.UTF8))
+                Encoding.UTF8))
             .SetName("Predefined rows");
 
 
@@ -147,4 +115,6 @@ public class IndexerTests
             )
             .SetName("Random rows");
     }
+
+    public record TestCase(IList<Row> Rows, BTreeOrder Order, Encoding Encoding);
 }

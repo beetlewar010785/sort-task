@@ -1,19 +1,67 @@
-UNSORTED_FILE=output/unsorted INDEX_FILE=output/index SORTED_FILE=output/sorted FILE_SIZE=100000000 make run-src
-BUILD_DIR=output/bin make publish
-UNSORTED_FILE=output/unsorted INDEX_FILE=output/index SORTED_FILE=output/sorted FILE_SIZE=100000000 BUILD_DIR=output/bin make run-bin
+# 📂 Large File Sorter 🚀
 
-FILE_SIZE=10737418
-00:00:31.9309121
+## 📌 Overview
 
-FILE_SIZE=1073741899
-00:32:27.8623078
+This project implements a **large file sorting system**, designed to efficiently sort files of **unlimited size** (tested on 1GB files). Each line in the file follows the format: **`Number. String`**.
 
-FILE_SIZE=10737418
-00:00:10.6093132
+The implementation leverages **B-Tree data structures** for optimal sorting performance.
 
-FILE_SIZE=1073741899
-00:34:55.8623078
+The core class of the implementation is **BTreeIndexer<TOphValue>**, which performs indexing of the specified record.
 
-dotnet add package StyleCop.Analyzers
-dotnet add package Microsoft.CodeAnalysis.FxCopAnalyzers
-dotnet tool install -g dotnet-format
+---
+
+## 🏗️ Architecture
+
+The project follows the **Hexagonal Architecture** (Ports and Adapters) to ensure modularity and testability.
+
+### 📂 Project Structure
+
+- **src/SortTask.Adapter** - Adapter layer.
+- **src/SortTask.Application** - Application layer.
+- **src/SortTask.Domain** - Business logic layer.
+- **src/SortTask.TestFileGenerator** - Generates a test unsorted file.
+- **src/SortTask.Sorter** - Sorts the input file.
+- **src/SortTask.Checker** - Verifies the sorted file.
+
+---
+
+## ⚙️ Installation
+
+Ensure you have **.NET 8.0** installed before proceeding.
+
+---
+
+## 🎯 Running the Application
+
+You can run the sorter using two approaches:
+
+### 🖥️ Running from Source
+
+```sh
+FILE_SIZE={SIZE_IN_BYTES} make run-src
+```
+
+🔹 Runs directly from the source code.
+
+### 🏗️ Running from Binaries
+
+```sh
+make publish && FILE_SIZE={SIZE_IN_BYTES} make run-bin
+```
+
+🔹 Publishes binaries and runs the sorter from the binaries.
+
+The sorted file will be saved in:
+
+```
+./bin/sorted
+```
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+
+🛠️ Happy Sorting! 🚀
+

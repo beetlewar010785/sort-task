@@ -8,10 +8,7 @@ public class ConsoleProgressStringBuilder(int barWidth)
         const string openingSymbol = "[";
         const string closingSymbol = "]";
 
-        if (percent is < 0 or > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(percent));
-        }
+        if (percent is < 0 or > 100) throw new ArgumentOutOfRangeException(nameof(percent));
 
         var openingAndClosingSymbols = openingSymbol.Length + closingSymbol.Length;
         var payloadWidth = barWidth - openingAndClosingSymbols;

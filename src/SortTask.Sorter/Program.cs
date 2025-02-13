@@ -6,7 +6,7 @@ using Spectre.Console.Cli;
 var app = new CommandApp<SortCommand>();
 app.Configure(config =>
 {
-    config.SetApplicationName(Assembly.GetExecutingAssembly().GetName().FullName)
+    _ = config.SetApplicationName(Assembly.GetExecutingAssembly().GetName().FullName)
         .PropagateExceptions()
         .SetExceptionHandler((ex, _) =>
             {

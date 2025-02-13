@@ -6,10 +6,7 @@ public class OphReadWriter(int numWords) : IOphReadWriter<OphValue>
 
     public int Write(OphValue value, Span<byte> target, int position)
     {
-        foreach (var word in value.Words)
-        {
-            position = BinaryReadWriter.WriteUlong(word, target, position);
-        }
+        foreach (var word in value.Words) position = BinaryReadWriter.WriteUlong(word, target, position);
 
         return position;
     }

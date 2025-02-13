@@ -1,6 +1,6 @@
 namespace SortTask.Application;
 
-public interface ICommand<in TParam, TResult>
+public interface ICommand<TResult>
 {
-    IAsyncEnumerable<CommandIteration<TResult>> Execute(TParam param, CancellationToken cancellationToken);
+    IAsyncEnumerable<CommandIteration<TResult>> Execute(CancellationToken cancellationToken);
 }

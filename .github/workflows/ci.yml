@@ -7,6 +7,11 @@ jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # ✅ Allow Upload SARIF
+      actions: read
+      contents: read
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -19,8 +24,18 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Install JetBrains ReSharper Global Tools
+        run: |
+          dotnet tool install --global JetBrains.ReSharper.GlobalTools
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
       - name: Run Linter
         run: make lint
+
+      - name: Upload SARIF Report to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bin/inspect-results.sarif
 
   test:
     name: Run Tests
@@ -39,7 +54,7 @@ jobs:
         run: dotnet restore
 
       - name: Run Tests
-        run: make test
+        run: make run-test
 
   publish:
     uses: ./.github/workflows/publish.yml
@@ -54,13 +69,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Prepare Directories
-        run: mkdir -p ./output
+        run: mkdir -p ./bin
 
       - name: Run E2E Test (Source)
         run: |
-          UNSORTED_FILE=./output/unsorted \
-          INDEX_FILE=./output/index \
-          SORTED_FILE=./output/sorted \
           FILE_SIZE=100000 \
           make run-src
 

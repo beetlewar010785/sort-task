@@ -19,10 +19,7 @@ public class Oph(int numWords) : IOph<OphValue>
         for (var i = 0; i < numWords; i++)
         {
             ulong value = 0;
-            for (var j = 0; j < 8; j++)
-            {
-                value = (value << 8) | b[i * 8 + j];
-            }
+            for (var j = 0; j < 8; j++) value = (value << 8) | b[i * 8 + j];
 
             values[i] = value;
         }

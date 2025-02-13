@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Loader;
-using SortTask.Application;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -11,23 +10,6 @@ namespace SortTask.TestFileCreator;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings>
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    public class Settings : CommandSettings
-    {
-        [CommandOption("-f|--file")]
-        [Description("Path to the file")]
-        public string? FilePath { get; set; }
-
-        [CommandOption("-s|--size")]
-        [Description("File size in bytes")]
-        public long FileSize { get; set; }
-
-        [CommandOption("-h|--help")]
-        [Description("Show help message")]
-        public bool ShowHelp { get; set; }
-    }
-
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage = "Usage: dotnet SortTask.TestFileCreator.dll -f <file> -s <size>";
@@ -75,7 +57,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
             using var compositionRoot = CompositionRoot.Build(settings.FilePath, settings.FileSize);
 
-            await compositionRoot.FeedRowCommand.Execute(new FeedRowCommand.Param(), cts.Token)
+            _ = await compositionRoot.FeedRowCommand.Execute(cts.Token)
                 .ToListAsync(cts.Token);
         }
         catch (OperationCanceledException)
@@ -88,5 +70,22 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
         return 0;
+    }
+
+    // ReSharper disable once ClassNeverInstantiated.Global
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    public class Settings : CommandSettings
+    {
+        [CommandOption("-f|--file")]
+        [Description("Path to the file")]
+        public string? FilePath { get; set; }
+
+        [CommandOption("-s|--size")]
+        [Description("File size in bytes")]
+        public long FileSize { get; set; }
+
+        [CommandOption("-h|--help")]
+        [Description("Show help message")]
+        public bool ShowHelp { get; set; }
     }
 }

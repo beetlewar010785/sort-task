@@ -11,10 +11,7 @@ public class BTreeIndexComparer<TOphValue>(
         CancellationToken cancellationToken)
     {
         var compareResult = ophComparer.Compare(x.OphValue, y.OphValue);
-        if (compareResult != 0)
-        {
-            return compareResult;
-        }
+        if (compareResult != 0) return compareResult;
 
         var xRow = await rowLookup.FindRow(x.Offset, x.Length, cancellationToken);
         var yRow = await rowLookup.FindRow(y.Offset, y.Length, cancellationToken);
