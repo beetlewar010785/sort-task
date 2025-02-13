@@ -15,7 +15,7 @@ lint-fix:
 	jb cleanupcode SortTask.sln
 
 run-test:
-	dotnet test --logger:"console;verbosity=normal" --no-restore --no-build
+	dotnet test --logger:"console;verbosity=normal" --no-restore
 
 publish:
 	mkdir -p bin
