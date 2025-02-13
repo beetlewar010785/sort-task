@@ -84,7 +84,7 @@ public static class CompositionRootBuilder
         var lookup = new RowLookupCache(rowLookup);
 
         var ophCollisionDetector = new OphCollisionDetector<T>(ophComparer);
-        var indexer = new Indexer<T>(
+        var indexer = new BTreeIndexer<T>(
             store,
             new BTreeIndexComparer<T>(ophCollisionDetector, new RowComparer(), lookup),
             order,

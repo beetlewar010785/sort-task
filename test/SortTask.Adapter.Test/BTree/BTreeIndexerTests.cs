@@ -6,7 +6,7 @@ using SortTask.Domain.RowGeneration;
 
 namespace SortTask.Adapter.Test.BTree;
 
-public class IndexerTests
+public class BTreeIndexerTests
 {
     [TestCaseSource(nameof(SortingCases))]
     public async Task ShouldBuildSortedIndex(TestCase testCase)
@@ -33,7 +33,7 @@ public class IndexerTests
         var store = new StreamBTreeStore<OphValue>(bTreeNodeReadWriter);
         await store.Initialize(CancellationToken.None);
 
-        var sut = new Indexer<OphValue>(
+        var sut = new BTreeIndexer<OphValue>(
             store,
             indexComparer,
             testCase.Order,

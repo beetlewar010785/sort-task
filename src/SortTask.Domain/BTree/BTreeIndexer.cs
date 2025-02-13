@@ -2,7 +2,7 @@ using System.Text;
 
 namespace SortTask.Domain.BTree;
 
-public class Indexer<TOphValue>(
+public class BTreeIndexer<TOphValue>(
     IBTreeStore<TOphValue> store,
     IBTreeIndexComparer<TOphValue> indexComparer,
     BTreeOrder order,
@@ -205,7 +205,7 @@ public class Indexer<TOphValue>(
                 return await FindTarget(insertingIndex, node, cancellationToken);
             }
 
-            // our index is the greatest in the node, search in the rightmost child 
+            // our index is the greatest in the node, search in the rightmost child
             var latestNodeId = searchInNode.Children[^1];
             var latestNode = await store.GetNode(latestNodeId, cancellationToken);
             searchInNode = latestNode;
