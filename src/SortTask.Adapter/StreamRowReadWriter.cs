@@ -7,6 +7,8 @@ namespace SortTask.Adapter;
 
 public class StreamRowStore(Stream stream, Encoding encoding) : IRowWriter, IRowLookup, IRowIterator
 {
+    private const string RowFieldsSplitter = ". ";
+
     private byte[] _buf = [];
 
     public async IAsyncEnumerable<RowIteration> ReadAsAsyncEnumerable(
@@ -43,16 +45,16 @@ public class StreamRowStore(Stream stream, Encoding encoding) : IRowWriter, IRow
 
     private static string SerializeRow(Row row)
     {
-        return $"{row.Number}{AdapterConst.RowFieldsSplitter}{row.Sentence}\n";
+        return $"{row.Number}{RowFieldsSplitter}{row.Sentence}\n";
     }
 
     private static Row DeserializeRow(string rowString)
     {
-        var splitterIndex = rowString.IndexOf(AdapterConst.RowFieldsSplitter, StringComparison.Ordinal);
+        var splitterIndex = rowString.IndexOf(RowFieldsSplitter, StringComparison.Ordinal);
         return splitterIndex < 0
             ? throw new InvalidOperationException($"Invalid row format {rowString}")
             : new Row(
                 int.Parse(rowString[..splitterIndex], CultureInfo.InvariantCulture),
-                rowString[(splitterIndex + AdapterConst.RowFieldsSplitter.Length)..]);
+                rowString[(splitterIndex + RowFieldsSplitter.Length)..]);
     }
 }
