@@ -3,9 +3,9 @@ namespace SortTask.Domain.RowGeneration;
 public class RowGenerationRepeater(
     IRowGenerator inner,
     Random rnd,
-    int repeatPeriod,
-    int maxRepeatNumber,
-    int refreshRepeatingRowsPeriod
+    int repeatPeriod = 1000,
+    int maxRepeatNumber = 2,
+    int refreshRepeatingRowsPeriod = 2
 ) : IRowGenerator
 {
     private readonly List<Row> _repeatingRows = [];
@@ -18,10 +18,7 @@ public class RowGenerationRepeater(
         if (repeatValue == 1 && _repeatingRows.Count > 0)
         {
             var repeatNumber = rnd.Next(1, maxRepeatNumber);
-            for (var i = 0; i < repeatNumber; i++)
-            {
-                rows.AddRange(_repeatingRows);
-            }
+            for (var i = 0; i < repeatNumber; i++) rows.AddRange(_repeatingRows);
 
             _repeatingRows.Clear();
         }

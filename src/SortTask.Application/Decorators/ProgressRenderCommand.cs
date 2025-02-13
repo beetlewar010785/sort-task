@@ -1,21 +1,19 @@
 using System.Runtime.CompilerServices;
-using SortTask.Domain;
 
 namespace SortTask.Application.Decorators;
 
-public class ProgressRenderCommand<TParam, TResult>(
-    ICommand<TParam, TResult> inner,
+public class ProgressRenderCommand<TResult>(
+    ICommand<TResult> inner,
     IProgressRenderer progressRenderer
-) : ICommand<TParam, TResult>
+) : ICommand<TResult>
 {
     public async IAsyncEnumerable<CommandIteration<TResult>> Execute(
-        TParam param,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
         try
         {
-            await foreach (var iteration in inner.Execute(param, cancellationToken))
+            await foreach (var iteration in inner.Execute(cancellationToken))
             {
                 yield return iteration;
                 progressRenderer.Render(iteration.ProgressPercent ?? 0, iteration.OperationName);

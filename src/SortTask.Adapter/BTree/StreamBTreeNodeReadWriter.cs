@@ -8,10 +8,6 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
     IOphReadWriter<TOphValue> ophReadWriter)
     where TOphValue : struct
 {
-    private static int HeaderSize =>
-        sizeof(long) + // RootId
-        sizeof(long); // NumNodes
-
     // move to struct?
     private readonly int _nodeSize =
         sizeof(long) + // ParentId
@@ -21,6 +17,10 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         sizeof(long) * order.MaxChildren; // Children;
 
     private bool _dirty;
+
+    private static int HeaderSize =>
+        sizeof(long) + // RootId
+        sizeof(long); // NumNodes
 
     public long CalculateNodePosition(long nodeIndex)
     {
@@ -45,7 +45,7 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
     {
         var buf = new byte[HeaderSize];
         var position = BinaryReadWriter.WriteLong(header.NumNodes, buf, 0);
-        BinaryReadWriter.WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
+        _ = BinaryReadWriter.WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
 
         stream.Position = 0;
         await stream.WriteAsync(buf, cancellationToken);
@@ -110,7 +110,7 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         return position;
     }
 
-    private (PositioningCollection<BTreeIndex<TOphValue>>, int) ReadIndices(int count, ReadOnlySpan<byte> buf,
+    private (PositioningItems<BTreeIndex<TOphValue>>, int) ReadIndices(int count, ReadOnlySpan<byte> buf,
         int position)
     {
         var indices = new BTreeIndex<TOphValue>[count];
@@ -125,21 +125,18 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
             indices[i] = index;
         }
 
-        return (new PositioningCollection<BTreeIndex<TOphValue>>(indices), position);
+        return (new PositioningItems<BTreeIndex<TOphValue>>(indices), position);
     }
 
     private static int WriteChildren(IEnumerable<long> children, Span<byte> target, int position)
     {
-        foreach (var id in children)
-        {
-            position = BinaryReadWriter.WriteLong(id, target, position);
-        }
+        foreach (var id in children) position = BinaryReadWriter.WriteLong(id, target, position);
 
         return position;
     }
 
 
-    private static PositioningCollection<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
+    private static PositioningItems<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
     {
         var children = new long[count];
 
@@ -149,6 +146,6 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
             children[i] = value;
         }
 
-        return new PositioningCollection<long>(children);
+        return new PositioningItems<long>(children);
     }
 }

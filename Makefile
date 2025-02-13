@@ -4,12 +4,14 @@ CHECKER_BIN = $(BUILD_DIR)/checker
 
 lint:
 	dotnet format --verify-no-changes
+	jb inspectcode SortTask.sln --output=output/inspect-results.sarif
 
 lint-fix:
 	dotnet format
+	jb cleanupcode SortTask.sln
 
 test:
-	dotnet test
+    dotnet test --logger:"console;verbosity=normal" --no-restore --no-build
 
 check-build-env:
 ifndef BUILD_DIR
@@ -57,3 +59,7 @@ sort-src:
 
 check-src:
 	dotnet run --project ./src/SortTask.Checker -- -f $(SORTED_FILE)
+
+clean:
+	dotnet clean
+	rm -rf bin obj

@@ -5,7 +5,7 @@ namespace SortTask.Adapter.Test;
 public class BufferedStreamReaderTests
 {
     [TestCaseSource(nameof(TestCases))]
-    public async Task<IEnumerable<BufferedStreamReader.ReadLineResult>> Should_Read_Lines(
+    public async Task<IEnumerable<BufferedStreamReader.ReadLineResult>> ShouldReadLines(
         string input,
         Encoding encoding)
     {
@@ -53,7 +53,7 @@ public class BufferedStreamReaderTests
             {
                 new BufferedStreamReader.ReadLineResult("a", 0, 1),
                 new BufferedStreamReader.ReadLineResult("б", 3, 2),
-                new BufferedStreamReader.ReadLineResult("@", 7, 1),
+                new BufferedStreamReader.ReadLineResult("@", 7, 1)
             });
 
         yield return new TestCaseData("a", Encoding.UTF32)
@@ -76,7 +76,7 @@ public class BufferedStreamReaderTests
             .Returns(new[]
             {
                 new BufferedStreamReader.ReadLineResult(longLine1, 0, longLine1.Length),
-                new BufferedStreamReader.ReadLineResult(longLine2, longLine1.Length + 1, longLine2.Length),
+                new BufferedStreamReader.ReadLineResult(longLine2, longLine1.Length + 1, longLine2.Length)
             })
             .SetName("Long lines");
     }

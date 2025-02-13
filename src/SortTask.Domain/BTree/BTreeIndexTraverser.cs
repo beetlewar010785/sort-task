@@ -13,10 +13,7 @@ public class BTreeIndexTraverser<TOphValue>(IBTreeStore<TOphValue> store) : IBTr
 
         var root = await store.GetNode(rootId.Value, cancellationToken);
 
-        await foreach (var index in IterateAsAsyncEnumerable(root, cancellationToken))
-        {
-            yield return index;
-        }
+        await foreach (var index in IterateAsAsyncEnumerable(root, cancellationToken)) yield return index;
     }
 
     private async IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(
@@ -30,9 +27,7 @@ public class BTreeIndexTraverser<TOphValue>(IBTreeStore<TOphValue> store) : IBTr
             {
                 var childNode = await store.GetNode(node.Children[i], cancellationToken);
                 await foreach (var childIndex in IterateAsAsyncEnumerable(childNode, cancellationToken))
-                {
                     yield return childIndex;
-                }
             }
 
             // 2. Return index itself

@@ -3,7 +3,7 @@ namespace SortTask.Domain.Test;
 public class RowComparerTests
 {
     [TestCaseSource(nameof(RowCases))]
-    public int Should_Compare_Rows(Row row1, Row row2)
+    public int ShouldCompareRows(Row row1, Row row2)
     {
         var sut = new RowComparer();
         return sut.Compare(row1, row2);

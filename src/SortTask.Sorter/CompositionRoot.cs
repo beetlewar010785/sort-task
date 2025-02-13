@@ -9,9 +9,9 @@ namespace SortTask.Sorter;
 
 // I prefer not to use IoC containers due to the lack of compile-time checking
 public class CompositionRoot<TOphValue>(
-    ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
+    ICommand<BuildIndexCommand.Result>
         buildIndexCommand,
-    ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result>
+    ICommand<SortRowsCommand<TOphValue>.Result>
         sortRowsCommand,
     OphCollisionDetector<TOphValue> ophCollisionDetector,
     RowLookupCache rowLookupCache,
@@ -20,10 +20,10 @@ public class CompositionRoot<TOphValue>(
     IList<IInitializer> initializers) : IDisposable
     where TOphValue : struct
 {
-    public ICommand<BuildIndexCommand.Param, BuildIndexCommand.Result>
+    public ICommand<BuildIndexCommand.Result>
         BuildIndexCommand => buildIndexCommand;
 
-    public ICommand<SortRowsCommand<TOphValue>.Param, SortRowsCommand<TOphValue>.Result>
+    public ICommand<SortRowsCommand<TOphValue>.Result>
         SortRowsCommand => sortRowsCommand;
 
     public OphCollisionDetector<TOphValue> CollisionDetector => ophCollisionDetector;
@@ -34,6 +34,16 @@ public class CompositionRoot<TOphValue>(
 
     public IEnumerable<IInitializer> Initializers => initializers;
 
+    public void Dispose()
+    {
+        foreach (var disposable in disposables) disposable.Dispose();
+
+        GC.SuppressFinalize(this);
+    }
+}
+
+public static class CompositionRootBuilder
+{
     public static CompositionRoot<OphValue> Build(
         string unsortedFilePath,
         string indexFilePath,
@@ -105,13 +115,5 @@ public class CompositionRoot<TOphValue>(
             store,
             [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile],
             [streamBTreeStore]);
-    }
-
-    public void Dispose()
-    {
-        foreach (var disposable in disposables)
-        {
-            disposable.Dispose();
-        }
     }
 }

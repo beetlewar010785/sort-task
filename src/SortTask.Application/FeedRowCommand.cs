@@ -9,14 +9,9 @@ public class FeedRowCommand(
     IRowWriter rowWriter,
     IRowGenerator rowGenerator,
     long estimatedSize
-) : ICommand<FeedRowCommand.Param, FeedRowCommand.Result>
+) : ICommand<FeedRowCommand.Result>
 {
-    public record Param;
-
-    public abstract record Result;
-
     public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        Param param,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         const string operationName = "Generating Test Data...";
@@ -32,12 +27,11 @@ public class FeedRowCommand(
                     operationName);
             }
 
-            if (targetStream.Position >= estimatedSize)
-            {
-                break;
-            }
+            if (targetStream.Position >= estimatedSize) break;
         }
 
         await rowWriter.Flush(cancellationToken);
     }
+
+    public abstract record Result;
 }

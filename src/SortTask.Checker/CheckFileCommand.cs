@@ -8,21 +8,9 @@ using Spectre.Console.Cli;
 
 namespace SortTask.Checker;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
-    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-    public class Settings : CommandSettings
-    {
-        [CommandOption("-f|--file")]
-        [Description("Path to the file to be checked")]
-        public string? FilePath { get; set; }
-
-        [CommandOption("-h|--help")]
-        [Description("Show help message")]
-        public bool ShowHelp { get; set; }
-    }
-
     public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage = "Usage: dotnet SortTask.Checker -f <file>";
@@ -64,7 +52,7 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
             await foreach (var iteration in compositionRoot
                                .CheckSortCommand
-                               .Execute(new CheckSortCommand.Param(), cts.Token))
+                               .Execute(cts.Token))
             {
                 if (iteration.Result is not CheckSortCommand.Result.ResultFailure failure) continue;
 
@@ -83,5 +71,18 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
         return 0;
+    }
+
+    // ReSharper disable once ClassNeverInstantiated.Global
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+    public class Settings : CommandSettings
+    {
+        [CommandOption("-f|--file")]
+        [Description("Path to the file to be checked")]
+        public string? FilePath { get; set; }
+
+        [CommandOption("-h|--help")]
+        [Description("Show help message")]
+        public bool ShowHelp { get; set; }
     }
 }

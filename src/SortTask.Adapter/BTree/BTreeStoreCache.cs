@@ -8,18 +8,20 @@ public class BTreeStoreCache<TOphValue>(
     int capacity = 100000) : IBTreeStore<TOphValue>
     where TOphValue : struct
 {
-    private long? _rootId;
-
     private readonly ConcurrentLru<long, BTreeNode<TOphValue>> _lru = new(
         1,
         capacity,
         EqualityComparer<long>.Default);
 
+    private long? _rootId;
+
     public long GetNodeSkipCount { get; private set; }
     public long GetNodeExecuteCount { get; private set; }
 
-    public Task<long> AllocateId(CancellationToken cancellationToken) =>
-        inner.AllocateId(cancellationToken);
+    public Task<long> AllocateId(CancellationToken cancellationToken)
+    {
+        return inner.AllocateId(cancellationToken);
+    }
 
     public async Task<long?> GetRoot(CancellationToken cancellationToken)
     {

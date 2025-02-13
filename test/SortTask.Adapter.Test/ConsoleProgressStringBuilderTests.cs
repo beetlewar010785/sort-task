@@ -7,7 +7,7 @@ public class ConsoleProgressStringBuilderTests
     [TestCase(50, 070, "hello", "[■■■■■■■■■■■■■■■■■■ hello  70% ■■■               ]")]
     [TestCase(50, 100, "hello", "[■■■■■■■■■■■■■■■■■■ hello 100% ■■■■■■■■■■■■■■■■■■]")]
     [TestCase(20, 100, "long-long-text-that-exceeds-progress-bar-width", "[ long-long-t 100% ]")]
-    public void Should_Build_Expected_String(int barWidth, int percent, string sutText, string expectedString)
+    public void ShouldBuildExpectedString(int barWidth, int percent, string sutText, string expectedString)
     {
         var sut = new ConsoleProgressStringBuilder(barWidth);
 

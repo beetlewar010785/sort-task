@@ -13,10 +13,7 @@ public static class StreamExtensions
         {
             var bytesRead = await stream.ReadAsync(buffer[totalRead..], cancellationToken);
 
-            if (bytesRead == 0)
-            {
-                throw new EndOfStreamException("Unexpected end of stream.");
-            }
+            if (bytesRead == 0) throw new EndOfStreamException("Unexpected end of stream.");
 
             totalRead += bytesRead;
         }
