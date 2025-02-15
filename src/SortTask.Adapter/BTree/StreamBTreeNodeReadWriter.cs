@@ -8,6 +8,8 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
     IOphReadWriter<TOphValue> ophReadWriter)
     where TOphValue : struct
 {
+    private const int NoRootId = -1;
+
     // move to struct?
     private readonly int _nodeSize =
         sizeof(long) + // ParentId
@@ -18,38 +20,33 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
 
     private bool _dirty;
 
-    private static int HeaderSize =>
-        sizeof(long) + // RootId
-        sizeof(long); // NumNodes
+    private byte[]? _allocation;
 
-    public long CalculateNodePosition(long nodeIndex)
+    private long? _rootId;
+    private long _numNodes;
+
+    public long Allocate()
     {
-        return HeaderSize + nodeIndex * _nodeSize;
+        const int allocateNodes = 1000;
+
+        var newNodePosition = _numNodes * _nodeSize;
+        var endOfNewNodePosition = newNodePosition + _nodeSize;
+
+        if (stream.Length < endOfNewNodePosition)
+        {
+            _allocation ??= new byte[_nodeSize * allocateNodes];
+            stream.Write(_allocation);
+        }
+
+        _numNodes++;
+        return newNodePosition;
     }
 
-    public StreamBTreeHeader ReadHeader()
+    public long? GetRoot() => _rootId;
+
+    public void SetRoot(long id)
     {
-        FlushIfRequired();
-
-        stream.Position = 0;
-        var buf = new byte[HeaderSize];
-        stream.ReadAll(buf);
-
-        var (numNodes, position) = BinaryReadWriter.ReadLong(buf, 0);
-        var (rootId, _) = BinaryReadWriter.ReadLong(buf, position);
-
-        return new StreamBTreeHeader(numNodes, rootId == StreamBTreeHeader.NoRootId ? null : rootId);
-    }
-
-    public void WriteHeader(StreamBTreeHeader header)
-    {
-        var buf = new byte[HeaderSize];
-        var position = BinaryReadWriter.WriteLong(header.NumNodes, buf, 0);
-        _ = BinaryReadWriter.WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
-
-        stream.Position = 0;
-        stream.Write(buf);
-        _dirty = true;
+        _rootId = id;
     }
 
     public BTreeNode<TOphValue> ReadNode(long id)
@@ -68,7 +65,7 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
 
         return new BTreeNode<TOphValue>(
             id,
-            parentId == StreamBTreeHeader.NoRootId ? null : parentId,
+            parentId == NoRootId ? null : parentId,
             children,
             indices
         );
@@ -77,7 +74,7 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
     public void WriteNode(BTreeNode<TOphValue> node)
     {
         var buf = new byte[_nodeSize];
-        var position = BinaryReadWriter.WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
+        var position = BinaryReadWriter.WriteLong(node.ParentId ?? NoRootId, buf, 0);
         position = BinaryReadWriter.WriteInt(node.Indices.Length, buf, position);
         position = BinaryReadWriter.WriteInt(node.Children.Length, buf, position);
         position = WriteIndices(node.Indices.Values, buf, position);

@@ -8,31 +8,17 @@ public class StreamBTreeStore<TOphValue>(StreamBTreeNodeReadWriter<TOphValue> bT
 {
     public long AllocateId()
     {
-        var header = bTreeNodeReadWriter.ReadHeader();
-        var newNodePosition = bTreeNodeReadWriter.CalculateNodePosition(header.NumNodes);
-
-        var emptyNode = new BTreeNode<TOphValue>(
-            newNodePosition,
-            null,
-            new PositioningItems<long>([]),
-            new PositioningItems<BTreeIndex<TOphValue>>([])
-        );
-        SaveNode(emptyNode);
-        bTreeNodeReadWriter.WriteHeader(header.IncrementNodes());
-
-        return emptyNode.Id;
+        return bTreeNodeReadWriter.Allocate();
     }
 
     public long? GetRoot()
     {
-        var header = bTreeNodeReadWriter.ReadHeader();
-        return header.Root ?? null;
+        return bTreeNodeReadWriter.GetRoot();
     }
 
     public void SetRoot(long id)
     {
-        var header = bTreeNodeReadWriter.ReadHeader();
-        bTreeNodeReadWriter.WriteHeader(header.SetRoot(id));
+        bTreeNodeReadWriter.SetRoot(id);
     }
 
     public BTreeNode<TOphValue> GetNode(long id)
@@ -45,8 +31,8 @@ public class StreamBTreeStore<TOphValue>(StreamBTreeNodeReadWriter<TOphValue> bT
         bTreeNodeReadWriter.WriteNode(node);
     }
 
+    // todo remove
     public void Initialize()
     {
-        bTreeNodeReadWriter.WriteHeader(new StreamBTreeHeader(0, null));
     }
 }

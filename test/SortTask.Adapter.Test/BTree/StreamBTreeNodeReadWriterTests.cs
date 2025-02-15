@@ -7,25 +7,6 @@ namespace SortTask.Adapter.Test.BTree;
 public class StreamBTreeNodeReadWriterTests
 {
     [Test]
-    public void ShouldWriteReadHeader()
-    {
-        using var stream = new MemoryStream();
-        var sut = new StreamBTreeNodeReadWriter<OphValue>(
-            stream,
-            new BTreeOrder(2),
-            new OphReadWriter(1));
-
-        var initialHeader = new StreamBTreeHeader(10, 123);
-        sut.WriteHeader(initialHeader);
-
-        var actualHeader = sut.ReadHeader();
-
-        var initialJson = JsonSerializer.Serialize(initialHeader);
-        var actualJson = JsonSerializer.Serialize(actualHeader);
-        Assert.That(actualJson, Is.EqualTo(initialJson));
-    }
-
-    [Test]
     public async Task ShouldWriteReadNode()
     {
         await using var stream = new MemoryStream();
