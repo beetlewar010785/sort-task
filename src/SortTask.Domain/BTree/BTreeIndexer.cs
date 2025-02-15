@@ -26,7 +26,7 @@ public class BTreeIndexer<TOphValue>(
 
         var root = store.GetNode(rootId.Value);
         var targetResult = FindTarget(index, root);
-        InsertBTreeIndex(targetResult.Target, targetResult.Position, index);
+        InsertBTreeIndex(targetResult.target, targetResult.position, index);
     }
 
     private void InsertBTreeIndex(
@@ -62,7 +62,8 @@ public class BTreeIndexer<TOphValue>(
             else
             {
                 parent = store.GetNode(node.ParentId.Value);
-                parent = AddIndexAndNodeToParent(parent.Value, insertingNode: rightId, insertAfterNode: node.Id, insertingIndex: splitResult.PopupIndex);
+                parent = AddIndexAndNodeToParent(parent.Value, insertingNode: rightId, insertAfterNode: node.Id,
+                    insertingIndex: splitResult.PopupIndex);
             }
 
             CreateOrUpdateNode(node.Id, parent.Value.Id, splitResult.LeftChildren, splitResult.LeftIndices, false);
@@ -94,11 +95,10 @@ public class BTreeIndexer<TOphValue>(
         long insertingNode,
         long insertAfterNode)
     {
-        var target = FindTargetIn(insertingIndex, parent);
-
         var insertingNodePosition = parent.Children.IndexOf(insertAfterNode) + 1;
         var newChildren = parent.Children.Insert(insertingNode, insertingNodePosition);
-        var newIndices = parent.Indices.Insert(insertingIndex, target.Position);
+        var position = parent.Indices.SearchPosition(insertingIndex, indexComparer.Compare);
+        var newIndices = parent.Indices.Insert(insertingIndex, position);
 
         parent = new BTreeNode<TOphValue>(
             parent.Id,
@@ -159,14 +159,16 @@ public class BTreeIndexer<TOphValue>(
         }
     }
 
-    private FindTargetResult FindTarget(BTreeIndex<TOphValue> insertingIndex, BTreeNode<TOphValue> searchInNode)
+    private (BTreeNode<TOphValue> target, int position) FindTarget(BTreeIndex<TOphValue> insertingIndex,
+        BTreeNode<TOphValue> searchInNode)
     {
         while (true)
         {
             if (searchInNode.Children.Length == 0)
             {
                 // this is a leaf node, no need to search further
-                return FindTargetIn(insertingIndex, searchInNode);
+                var position = searchInNode.Indices.SearchPosition(insertingIndex, indexComparer.Compare);
+                return (searchInNode, position);
             }
 
             // search child where our index which is greater than our index to drill down
@@ -183,18 +185,6 @@ public class BTreeIndexer<TOphValue>(
             var latestNode = store.GetNode(latestNodeId);
             searchInNode = latestNode;
         }
-    }
-
-    private FindTargetResult FindTargetIn(BTreeIndex<TOphValue> index, BTreeNode<TOphValue> target)
-    {
-        var position = target.Indices.SearchPosition(index, indexComparer.Compare);
-        return new FindTargetResult(target, position);
-    }
-
-    private readonly struct FindTargetResult(BTreeNode<TOphValue> target, int position)
-    {
-        public BTreeNode<TOphValue> Target { get; } = target;
-        public int Position { get; } = position;
     }
 
     // we cannot return BTreeNode<TOphValue> because we do not have parent id yet
