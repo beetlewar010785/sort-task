@@ -11,13 +11,11 @@ public class StreamBTreeStore<TOphValue>
     private readonly Stream _stream;
     private readonly IOphReadWriter<TOphValue> _ophReadWriter;
 
-    // move to struct?
-    private readonly int _nodeSize;
-
-    private long? _rootId;
     private long _numNodes;
-    private long _numAllocatedNodes;
-    private byte[]? _allocationBuf;
+    private readonly int _nodeSize;
+    private long? _rootId;
+    private readonly byte[] _nodeBuf;
+    private readonly byte[] _allocateBuf;
 
     public StreamBTreeStore(
         Stream stream,
@@ -27,52 +25,41 @@ public class StreamBTreeStore<TOphValue>
         _stream = stream;
         _ophReadWriter = ophReadWriter;
 
-        var indexSize =
-            ophReadWriter.Size + // IndexOph
-            sizeof(long) + // Row position
-            sizeof(int); // row length
-
         _nodeSize =
             sizeof(long) + // ParentId
             sizeof(int) + // NumIndices
             sizeof(int) + // NumChildren
-            indexSize * order.MaxIndices + // Indices
+            (ophReadWriter.Size + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
             sizeof(long) * order.MaxChildren; // Children;
+
+        _nodeBuf = new byte[_nodeSize];
+        _allocateBuf = new byte[_nodeSize * AllocateNodes];
     }
 
     public long AllocateId()
     {
         var newNodePosition = _numNodes * _nodeSize;
-        _numNodes++;
-
-        if (_numNodes > _numAllocatedNodes)
+        if(_numNodes % AllocateNodes == 0)
         {
-            _allocationBuf ??= new byte[AllocateNodes * _nodeSize];
-            _stream.Write(_allocationBuf);
-            _numAllocatedNodes += AllocateNodes;
+            // allocation required
+            _stream.Position = newNodePosition;
+            _stream.Write(_allocateBuf);
         }
 
+        _numNodes++;
         return newNodePosition;
-    }
-
-    public long? GetRoot() => _rootId;
-
-    public void SetRoot(long id)
-    {
-        _rootId = id;
     }
 
     public BTreeNode<TOphValue> GetNode(long id)
     {
         _stream.Position = id;
-        var buf = new byte[_nodeSize];
-        _stream.ReadAll(buf);
+        _stream.ReadExactly(_nodeBuf);
         var position = 0;
-        (var parentId, position) = BinaryReadWriter.ReadLong(buf, position);
-        (var numIndices, position) = BinaryReadWriter.ReadInt(buf, position);
-        (var numChildren, position) = BinaryReadWriter.ReadInt(buf, position);
-        (var indices, position) = ReadIndices(numIndices, buf, position);
-        var children = ReadChildren(numChildren, buf, position);
+        (var parentId, position) = BinaryReadWriter.ReadLong(_nodeBuf, position);
+        (var numIndices, position) = BinaryReadWriter.ReadInt(_nodeBuf, position);
+        (var numChildren, position) = BinaryReadWriter.ReadInt(_nodeBuf, position);
+        (var indices, position) = ReadIndices(numIndices, _nodeBuf, position);
+        var children = ReadChildren(numChildren, _nodeBuf, position);
 
         return new BTreeNode<TOphValue>(
             id,
@@ -95,6 +82,10 @@ public class StreamBTreeStore<TOphValue>
         _stream.Write(buf);
         _stream.Flush();
     }
+
+    public long? GetRoot() => _rootId;
+
+    public void SetRoot(long id) => _rootId = id;
 
     private int WriteIndices(IEnumerable<BTreeIndex<TOphValue>> indices, Span<byte> target, int position)
     {
@@ -132,6 +123,7 @@ public class StreamBTreeStore<TOphValue>
 
         return position;
     }
+
 
     private static PositioningItems<long> ReadChildren(int count, ReadOnlySpan<byte> buf, int position)
     {

@@ -47,47 +47,54 @@ public class BTreeIndexer<TOphValue>(
 
     private void CheckOverflow(BTreeNode<TOphValue> node)
     {
-        while (true)
+        if (!order.IsOverflowed(node.Indices.Length))
         {
-            if (!order.IsOverflowed(node.Indices.Length)) return;
-
-            var splitResult = SplitNode(node);
-            var rightId = store.AllocateId();
-
-            BTreeNode<TOphValue>? parent = null;
-            if (node.ParentId.HasValue) parent = store.GetNode(node.ParentId.Value);
-
-            if (parent == null)
-                // if the node does not have parent, it means it is root
-                // then we need to assign new root
-                parent = CreateNewRoot(
-                    splitResult.PopupIndex,
-                    new PositioningItems<long>([node.Id, rightId]));
-            else
-                // when we have a parent, we add an index to the parent and created child node
-                parent = AddIndexAndNodeToParent(
-                    parent.Value,
-                    insertingNode: rightId,
-                    insertAfterNode: node.Id,
-                    insertingIndex: splitResult.PopupIndex);
-
-            CreateOrUpdateNode(
-                node.Id,
-                parent.Value.Id,
-                splitResult.LeftChildren,
-                splitResult.LeftIndices,
-                false);
-
-            CreateOrUpdateNode(
-                rightId,
-                parent.Value.Id,
-                splitResult.RightChildren,
-                splitResult.RightIndices,
-                true);
-
-            // repeat recursively until we reach the root or find a node that is not overflowed
-            node = parent.Value;
+            return;
         }
+
+        var splitResult = SplitNode(node);
+        var rightId = store.AllocateId();
+
+        BTreeNode<TOphValue>? parent = null;
+        if (node.ParentId.HasValue)
+        {
+            parent = store.GetNode(node.ParentId.Value);
+        }
+
+        if (parent == null)
+        {
+            // if the node does not have parent, it means it is root
+            // then we need to assign new root
+            parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
+        }
+        else
+        {
+            // when we have a parent, we add an index to the parent and created child node
+            parent = AddIndexAndNodeToParent(
+                parent: parent.Value,
+                insertingNode: rightId,
+                insertAfterNode: node.Id,
+                insertingIndex: splitResult.PopupIndex);
+        }
+
+        CreateOrUpdateNode(
+            nodeId: node.Id,
+            newParentId: parent.Value.Id,
+            newChildren: splitResult.LeftChildren,
+            newIndices: splitResult.LeftIndices,
+            childrenParentIdChanged: false
+        );
+
+        CreateOrUpdateNode(
+            nodeId: rightId,
+            newParentId: parent.Value.Id,
+            newChildren: splitResult.RightChildren,
+            newIndices: splitResult.RightIndices,
+            childrenParentIdChanged: true
+        );
+
+        // repeat recursively until we reach the root or find a node that is not overflowed
+        CheckOverflow(parent.Value);
     }
 
     private static SplitBTreeNodeResult SplitNode(BTreeNode<TOphValue> node)
@@ -176,17 +183,13 @@ public class BTreeIndexer<TOphValue>(
         }
     }
 
-    private FindTargetResult FindTarget(
-        BTreeIndex<TOphValue> insertingIndex,
-        BTreeNode<TOphValue> searchInNode)
+    private FindTargetResult FindTarget(BTreeIndex<TOphValue> insertingIndex, BTreeNode<TOphValue> searchInNode)
     {
         while (true)
         {
             if (searchInNode.Children.Length == 0)
-            {
                 // this is a leaf node, no need to search further
                 return FindTargetIn(insertingIndex, searchInNode);
-            }
 
             // search child where our index which is greater than our index to drill down
             for (var i = 0; i < searchInNode.Indices.Length; i++)
@@ -214,10 +217,8 @@ public class BTreeIndexer<TOphValue>(
             var existingIndex = target.Indices[i];
             var indexCompareResult = indexComparer.Compare(index, existingIndex);
             if (indexCompareResult <= 0)
-            {
                 // our index is less than or equal to the other index, we found right place
                 return new FindTargetResult(target, i);
-            }
         }
 
         // return the latest position
