@@ -52,20 +52,20 @@ public class BTreeIndexer<TOphValue>(
         var splitResult = SplitNode(node);
         var rightId = store.AllocateId();
 
-        BTreeNode<TOphValue>? parent = null;
-        if (node.ParentId.HasValue) parent = store.GetNode(node.ParentId.Value);
-
-        if (parent == null)
-            // if the node does not have parent, it means it is root
-            // then we need to assign new root
+        BTreeNode<TOphValue>? parent;
+        if (!node.ParentId.HasValue)
+        {
             parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
+        }
         else
-            // when we have a parent, we add an index to the parent and created child node
+        {
+            parent = store.GetNode(node.ParentId.Value);
             parent = AddIndexAndNodeToParent(
                 parent.Value,
                 insertingNode: rightId,
                 insertAfterNode: node.Id,
                 insertingIndex: splitResult.PopupIndex);
+        }
 
         CreateOrUpdateNode(
             node.Id,
@@ -111,7 +111,6 @@ public class BTreeIndexer<TOphValue>(
 
         var insertingNodePosition = parent.Children.IndexOf(insertAfterNode) + 1;
         var newChildren = parent.Children.Insert(insertingNode, insertingNodePosition);
-
         var newIndices = parent.Indices.Insert(insertingIndex, target.Position);
 
         parent = new BTreeNode<TOphValue>(

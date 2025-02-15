@@ -40,19 +40,20 @@ public class StreamBTreeStore<TOphValue>
     {
         var newNodePosition = _numNodes * _nodeSize;
 
-        SaveNode(new BTreeNode<TOphValue>(
-            newNodePosition,
-            null,
-            new PositioningItems<long>([]),
-            new PositioningItems<BTreeIndex<TOphValue>>([])));
+        // SaveNode(new BTreeNode<TOphValue>(
+        //     newNodePosition,
+        //     null,
+        //     new PositioningItems<long>([]),
+        //     new PositioningItems<BTreeIndex<TOphValue>>([])));
 
-        // if(_numNodes % AllocateNodes == 0)
-        // {
-        //     // allocation required
-        //     _stream.Position = newNodePosition;
-        //     _stream.Write(_allocateBuf);
-        // }
-        //
+        if (_numNodes % AllocateNodes == 0)
+        {
+            // allocation required
+            _stream.Position = newNodePosition;
+            _stream.Write(_allocateBuf);
+            _stream.Flush();
+        }
+
         _numNodes++;
         return newNodePosition;
     }
