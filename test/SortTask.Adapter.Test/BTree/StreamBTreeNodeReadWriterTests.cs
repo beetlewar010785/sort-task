@@ -7,18 +7,18 @@ namespace SortTask.Adapter.Test.BTree;
 public class StreamBTreeNodeReadWriterTests
 {
     [Test]
-    public async Task ShouldWriteReadHeader()
+    public void ShouldWriteReadHeader()
     {
-        await using var stream = new MemoryStream();
+        using var stream = new MemoryStream();
         var sut = new StreamBTreeNodeReadWriter<OphValue>(
             stream,
             new BTreeOrder(2),
             new OphReadWriter(1));
 
         var initialHeader = new StreamBTreeHeader(10, 123);
-        await sut.WriteHeader(initialHeader, CancellationToken.None);
+        sut.WriteHeader(initialHeader);
 
-        var actualHeader = await sut.ReadHeader(CancellationToken.None);
+        var actualHeader = sut.ReadHeader();
 
         var initialJson = JsonSerializer.Serialize(initialHeader);
         var actualJson = JsonSerializer.Serialize(actualHeader);
@@ -42,9 +42,9 @@ public class StreamBTreeNodeReadWriterTests
             ])
         );
 
-        await sut.WriteNode(initialNode, CancellationToken.None);
+        sut.WriteNode(initialNode);
 
-        var actualNode = await sut.ReadNode(id, CancellationToken.None);
+        var actualNode = sut.ReadNode(id);
 
         var initialJson = JsonSerializer.Serialize(initialNode);
         var actualJson = JsonSerializer.Serialize(actualNode);

@@ -13,7 +13,7 @@ public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
     public long FindRowSkipCount { get; private set; }
     public long FindRowExecuteCount { get; private set; }
 
-    public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
+    public Row FindRow(long offset, int length)
     {
         if (_lru.TryGet(offset, out var row))
         {
@@ -21,7 +21,7 @@ public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
             return row;
         }
 
-        row = await inner.FindRow(offset, length, cancellationToken);
+        row = inner.FindRow(offset, length);
         FindRowExecuteCount++;
 
         _lru.AddOrUpdate(offset, row);

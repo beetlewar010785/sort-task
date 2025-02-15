@@ -8,10 +8,9 @@ public class PredefinedStreamLengthProgressCalculatorCommand<TResult>(
     long estimatedSize
 ) : ICommand<TResult>
 {
-    public async IAsyncEnumerable<CommandIteration<TResult>> Execute(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<CommandIteration<TResult>> Execute()
     {
-        await foreach (var iteration in inner.Execute(cancellationToken))
+        foreach (var iteration in inner.Execute())
         {
             var progress = (int)Math.Min(100 * stream.Position / estimatedSize, 100);
             yield return iteration.SetProgress(progress);

@@ -10,7 +10,7 @@ namespace SortTask.TestFileCreator;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage = "Usage: dotnet SortTask.TestFileCreator.dll -f <file> -s <size>";
 
@@ -21,19 +21,19 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
             AnsiConsole.WriteLine("  -f, --file   Path to the file");
             AnsiConsole.WriteLine("  -s, --size   File size in bytes");
             AnsiConsole.WriteLine("  -h, --help   Show help message");
-            return 0;
+            return Task.FromResult(0);
         }
 
         if (string.IsNullOrEmpty(settings.FilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] File path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (settings.FileSize <= 0)
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Valid file size is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         AnsiConsole.MarkupLine($"[yellow]Generating file:[/] {settings.FilePath.EscapeMarkup()}");
@@ -57,19 +57,21 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
             using var compositionRoot = CompositionRoot.Build(settings.FilePath, settings.FileSize);
 
-            _ = await compositionRoot.FeedRowCommand.Execute(cts.Token)
-                .ToListAsync(cts.Token);
+            foreach (var _ in compositionRoot.FeedRowCommand.Execute())
+            {
+                cts.Token.ThrowIfCancellationRequested();
+            }
         }
         catch (OperationCanceledException)
         {
             AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
-            return 1;
+            return Task.FromResult(1);
         }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
-        return 0;
+        return Task.FromResult(0);
     }
 
     // ReSharper disable once ClassNeverInstantiated.Global

@@ -27,13 +27,13 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         return HeaderSize + nodeIndex * _nodeSize;
     }
 
-    public async Task<StreamBTreeHeader> ReadHeader(CancellationToken cancellationToken)
+    public StreamBTreeHeader ReadHeader()
     {
-        await FlushIfRequired(cancellationToken);
+        FlushIfRequired();
 
         stream.Position = 0;
         var buf = new byte[HeaderSize];
-        await stream.ReadExactAsync(buf, cancellationToken);
+        stream.ReadAll(buf);
 
         var (numNodes, position) = BinaryReadWriter.ReadLong(buf, 0);
         var (rootId, _) = BinaryReadWriter.ReadLong(buf, position);
@@ -41,25 +41,24 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         return new StreamBTreeHeader(numNodes, rootId == StreamBTreeHeader.NoRootId ? null : rootId);
     }
 
-    public async Task WriteHeader(StreamBTreeHeader header, CancellationToken cancellationToken)
+    public void WriteHeader(StreamBTreeHeader header)
     {
         var buf = new byte[HeaderSize];
         var position = BinaryReadWriter.WriteLong(header.NumNodes, buf, 0);
         _ = BinaryReadWriter.WriteLong(header.Root ?? StreamBTreeHeader.NoRootId, buf, position);
 
         stream.Position = 0;
-        await stream.WriteAsync(buf, cancellationToken);
+        stream.Write(buf);
         _dirty = true;
-        //await stream.FlushAsync(cancellationToken);
     }
 
-    public async Task<BTreeNode<TOphValue>> ReadNode(long id, CancellationToken cancellationToken)
+    public BTreeNode<TOphValue> ReadNode(long id)
     {
-        await FlushIfRequired(cancellationToken);
+        FlushIfRequired();
 
         stream.Position = id;
         var buf = new byte[_nodeSize];
-        await stream.ReadExactAsync(buf, cancellationToken);
+        stream.ReadAll(buf);
         var position = 0;
         (var parentId, position) = BinaryReadWriter.ReadLong(buf, position);
         (var numIndices, position) = BinaryReadWriter.ReadInt(buf, position);
@@ -75,7 +74,7 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         );
     }
 
-    public async Task WriteNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
+    public void WriteNode(BTreeNode<TOphValue> node)
     {
         var buf = new byte[_nodeSize];
         var position = BinaryReadWriter.WriteLong(node.ParentId ?? StreamBTreeHeader.NoRootId, buf, 0);
@@ -85,16 +84,15 @@ public class StreamBTreeNodeReadWriter<TOphValue>(
         _ = WriteChildren(node.Children.Values, buf, position);
 
         stream.Position = node.Id;
-        await stream.WriteAsync(buf, cancellationToken);
+        stream.Write(buf);
         _dirty = true;
-        //await stream.FlushAsync(cancellationToken);
     }
 
-    private async Task FlushIfRequired(CancellationToken token)
+    private void FlushIfRequired()
     {
         if (!_dirty) return;
 
-        await stream.FlushAsync(token);
+        stream.Flush();
         _dirty = false;
     }
 

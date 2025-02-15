@@ -5,16 +5,13 @@ public class BTreeIndexComparer<TOphValue>(
     IComparer<Row> rowComparer,
     IRowLookup rowLookup) : IBTreeIndexComparer<TOphValue> where TOphValue : struct
 {
-    public async Task<int> Compare(
-        BTreeIndex<TOphValue> x,
-        BTreeIndex<TOphValue> y,
-        CancellationToken cancellationToken)
+    public int Compare(BTreeIndex<TOphValue> x, BTreeIndex<TOphValue> y)
     {
         var compareResult = ophComparer.Compare(x.OphValue, y.OphValue);
         if (compareResult != 0) return compareResult;
 
-        var xRow = await rowLookup.FindRow(x.Offset, x.Length, cancellationToken);
-        var yRow = await rowLookup.FindRow(y.Offset, y.Length, cancellationToken);
-        return await Task.FromResult(rowComparer.Compare(xRow, yRow));
+        var xRow = rowLookup.FindRow(x.Offset, x.Length);
+        var yRow = rowLookup.FindRow(y.Offset, y.Length);
+        return rowComparer.Compare(xRow, yRow);
     }
 }

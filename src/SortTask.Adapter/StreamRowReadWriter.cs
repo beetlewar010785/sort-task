@@ -11,36 +11,35 @@ public class StreamRowStore(Stream stream, Encoding encoding) : IRowWriter, IRow
 
     private byte[] _buf = [];
 
-    public async IAsyncEnumerable<RowIteration> ReadAsAsyncEnumerable(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<RowIteration> IterateOverRows()
     {
         using var reader = new BufferedStreamReader(stream, encoding);
-        while (await reader.ReadLine(cancellationToken) is { } result)
+        while (reader.ReadLine() is { } result)
         {
             var row = DeserializeRow(result.Line);
             yield return new RowIteration(row, result.Offset, result.Length);
         }
     }
 
-    public async Task<Row> FindRow(long offset, int length, CancellationToken cancellationToken)
+    public Row FindRow(long offset, int length)
     {
         if (_buf.Length < length) _buf = new byte[length];
 
         stream.Position = offset;
-        await stream.ReadExactAsync(_buf.AsMemory(0, length), cancellationToken);
+        stream.ReadAll(_buf.AsSpan(0, length));
         var rowString = encoding.GetString(_buf.AsSpan(0, length));
         return DeserializeRow(rowString);
     }
 
-    public async Task Write(Row row, CancellationToken cancellationToken)
+    public void Write(Row row)
     {
         var bytes = encoding.GetBytes(SerializeRow(row));
-        await stream.WriteAsync(bytes, cancellationToken);
+        stream.Write(bytes);
     }
 
-    public Task Flush(CancellationToken cancellationToken)
+    public void Flush()
     {
-        return stream.FlushAsync(cancellationToken);
+        stream.FlushAsync();
     }
 
     private static string SerializeRow(Row row)

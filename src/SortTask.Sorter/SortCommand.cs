@@ -12,7 +12,7 @@ namespace SortTask.Sorter;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class SortCommand : AsyncCommand<SortCommand.Settings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage =
             "Usage: dotnet SortTask.Sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file>";
@@ -25,25 +25,25 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             AnsiConsole.WriteLine("  -x, --index-file     Path to the index file");
             AnsiConsole.WriteLine("  -s, --sorted-file    Path to the output sorted file");
             AnsiConsole.WriteLine("  -h, --help           Show help message");
-            return 0;
+            return Task.FromResult(0);
         }
 
         if (string.IsNullOrEmpty(settings.UnsortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Input unsorted file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (string.IsNullOrEmpty(settings.IndexFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Index file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (string.IsNullOrEmpty(settings.SortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Output sorted file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.UnsortedFilePath.EscapeMarkup()}");
@@ -72,9 +72,12 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 new BTreeOrder(AdapterConst.BTreeOrder),
                 new Oph(AdapterConst.NumIndexOphWords));
 
-            foreach (var initializer in compositionRoot.Initializers) await initializer.Initialize(cts.Token);
+            foreach (var initializer in compositionRoot.Initializers)
+            {
+                initializer.Initialize();
+            }
 
-            await Execute(compositionRoot, cts.Token);
+            Execute(compositionRoot, cts.Token);
 
             AnsiConsole.MarkupLine(
                 $"[yellow]Index collisions: [/] {compositionRoot.CollisionDetector.CollisionCount}");
@@ -97,24 +100,28 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         catch (OperationCanceledException)
         {
             AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
-            return 1;
+            return Task.FromResult(1);
         }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
 
-        return 0;
+        return Task.FromResult(0);
     }
 
-    private static async Task Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
+    private static void Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
         where TOphValue : struct
     {
-        _ = await compositionRoot.BuildIndexCommand.Execute(token)
-            .ToListAsync(token);
+        foreach (var _ in compositionRoot.BuildIndexCommand.Execute())
+        {
+            token.ThrowIfCancellationRequested();
+        }
 
-        _ = await compositionRoot.SortRowsCommand.Execute(token)
-            .ToListAsync(token);
+        foreach (var _ in compositionRoot.SortRowsCommand.Execute())
+        {
+            token.ThrowIfCancellationRequested();
+        }
     }
 
     // ReSharper disable once ClassNeverInstantiated.Global

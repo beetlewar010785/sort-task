@@ -2,16 +2,15 @@ namespace SortTask.Adapter;
 
 public static class StreamExtensions
 {
-    public static async Task ReadExactAsync(
+    public static void ReadAll(
         this Stream stream,
-        Memory<byte> buffer,
-        CancellationToken cancellationToken)
+        Span<byte> buffer)
     {
         var totalRead = 0;
 
         while (totalRead < buffer.Length)
         {
-            var bytesRead = await stream.ReadAsync(buffer[totalRead..], cancellationToken);
+            var bytesRead = stream.Read(buffer[totalRead..]);
 
             if (bytesRead == 0) throw new EndOfStreamException("Unexpected end of stream.");
 

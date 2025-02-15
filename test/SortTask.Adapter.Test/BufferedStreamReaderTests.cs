@@ -5,7 +5,7 @@ namespace SortTask.Adapter.Test;
 public class BufferedStreamReaderTests
 {
     [TestCaseSource(nameof(TestCases))]
-    public async Task<IEnumerable<BufferedStreamReader.ReadLineResult>> ShouldReadLines(
+    public IEnumerable<BufferedStreamReader.ReadLineResult> ShouldReadLines(
         string input,
         Encoding encoding)
     {
@@ -15,7 +15,7 @@ public class BufferedStreamReaderTests
         var lines = new List<BufferedStreamReader.ReadLineResult>();
         while (true)
         {
-            var line = await sut.ReadLine(CancellationToken.None);
+            var line = sut.ReadLine();
             if (line == null) break;
 
             lines.Add(line);

@@ -6,9 +6,9 @@ namespace SortTask.Adapter.BTree;
 public class StreamBTreeStore<TOphValue>(StreamBTreeNodeReadWriter<TOphValue> bTreeNodeReadWriter)
     : IBTreeStore<TOphValue>, IInitializer where TOphValue : struct
 {
-    public async Task<long> AllocateId(CancellationToken cancellationToken)
+    public long AllocateId()
     {
-        var header = await bTreeNodeReadWriter.ReadHeader(cancellationToken);
+        var header = bTreeNodeReadWriter.ReadHeader();
         var newNodePosition = bTreeNodeReadWriter.CalculateNodePosition(header.NumNodes);
 
         var emptyNode = new BTreeNode<TOphValue>(
@@ -17,36 +17,36 @@ public class StreamBTreeStore<TOphValue>(StreamBTreeNodeReadWriter<TOphValue> bT
             new PositioningItems<long>([]),
             new PositioningItems<BTreeIndex<TOphValue>>([])
         );
-        await SaveNode(emptyNode, cancellationToken);
-        await bTreeNodeReadWriter.WriteHeader(header.IncrementNodes(), cancellationToken);
+        SaveNode(emptyNode);
+        bTreeNodeReadWriter.WriteHeader(header.IncrementNodes());
 
         return emptyNode.Id;
     }
 
-    public async Task<long?> GetRoot(CancellationToken cancellationToken)
+    public long? GetRoot()
     {
-        var header = await bTreeNodeReadWriter.ReadHeader(cancellationToken);
+        var header = bTreeNodeReadWriter.ReadHeader();
         return header.Root ?? null;
     }
 
-    public async Task SetRoot(long id, CancellationToken cancellationToken)
+    public void SetRoot(long id)
     {
-        var header = await bTreeNodeReadWriter.ReadHeader(cancellationToken);
-        await bTreeNodeReadWriter.WriteHeader(header.SetRoot(id), cancellationToken);
+        var header = bTreeNodeReadWriter.ReadHeader();
+        bTreeNodeReadWriter.WriteHeader(header.SetRoot(id));
     }
 
-    public Task<BTreeNode<TOphValue>> GetNode(long id, CancellationToken cancellationToken)
+    public BTreeNode<TOphValue> GetNode(long id)
     {
-        return bTreeNodeReadWriter.ReadNode(id, cancellationToken);
+        return bTreeNodeReadWriter.ReadNode(id);
     }
 
-    public Task SaveNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
+    public void SaveNode(BTreeNode<TOphValue> node)
     {
-        return bTreeNodeReadWriter.WriteNode(node, cancellationToken);
+        bTreeNodeReadWriter.WriteNode(node);
     }
 
-    public Task Initialize(CancellationToken token)
+    public void Initialize()
     {
-        return bTreeNodeReadWriter.WriteHeader(new StreamBTreeHeader(0, null), token);
+        bTreeNodeReadWriter.WriteHeader(new StreamBTreeHeader(0, null));
     }
 }

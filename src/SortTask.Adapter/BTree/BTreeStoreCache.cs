@@ -18,23 +18,23 @@ public class BTreeStoreCache<TOphValue>(
     public long GetNodeSkipCount { get; private set; }
     public long GetNodeExecuteCount { get; private set; }
 
-    public Task<long> AllocateId(CancellationToken cancellationToken)
+    public long AllocateId()
     {
-        return inner.AllocateId(cancellationToken);
+        return inner.AllocateId();
     }
 
-    public async Task<long?> GetRoot(CancellationToken cancellationToken)
+    public long? GetRoot()
     {
-        return _rootId ??= await inner.GetRoot(cancellationToken);
+        return _rootId ??= inner.GetRoot();
     }
 
-    public async Task SetRoot(long id, CancellationToken cancellationToken)
+    public void SetRoot(long id)
     {
-        await inner.SetRoot(id, cancellationToken);
+        inner.SetRoot(id);
         _rootId = id;
     }
 
-    public async Task<BTreeNode<TOphValue>> GetNode(long id, CancellationToken cancellationToken)
+    public BTreeNode<TOphValue> GetNode(long id)
     {
         if (_lru.TryGet(id, out var node))
         {
@@ -42,7 +42,7 @@ public class BTreeStoreCache<TOphValue>(
             return node;
         }
 
-        node = await inner.GetNode(id, cancellationToken);
+        node = inner.GetNode(id);
         GetNodeExecuteCount++;
 
         _lru.AddOrUpdate(node.Id, node);
@@ -50,9 +50,9 @@ public class BTreeStoreCache<TOphValue>(
         return node;
     }
 
-    public async Task SaveNode(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
+    public void SaveNode(BTreeNode<TOphValue> node)
     {
-        await inner.SaveNode(node, cancellationToken);
+        inner.SaveNode(node);
         _lru.AddOrUpdate(node.Id, node);
     }
 }

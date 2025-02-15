@@ -30,10 +30,10 @@ public class BufferedStreamReader(Stream stream, Encoding encoding) : IDisposabl
         GC.SuppressFinalize(this);
     }
 
-    public async Task<ReadLineResult?> ReadLine(CancellationToken cancellationToken)
+    public ReadLineResult? ReadLine()
     {
         _offset = ActualPosition();
-        var line = await _streamReader.ReadLineAsync(cancellationToken);
+        var line = _streamReader.ReadLine();
         if (line == null) return null;
 
         var length = encoding.GetByteCount(line);
