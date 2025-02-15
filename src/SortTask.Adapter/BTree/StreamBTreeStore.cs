@@ -7,13 +7,13 @@ public class StreamBTreeStore<TOphValue>
 {
     private const int NoRootId = -1;
     private const int AllocateNodes = 10000;
+
+    private readonly IOphReadWriter<TOphValue> _ophReadWriter;
+    private readonly Stream _stream;
+
     private readonly byte[] _allocateBuf;
     private readonly byte[] _nodeBuf;
     private readonly int _nodeSize;
-    private readonly IOphReadWriter<TOphValue> _ophReadWriter;
-
-    private readonly Stream _stream;
-
     private long _numNodes;
     private long? _rootId;
 
@@ -39,12 +39,6 @@ public class StreamBTreeStore<TOphValue>
     public long AllocateId()
     {
         var newNodePosition = _numNodes * _nodeSize;
-
-        // SaveNode(new BTreeNode<TOphValue>(
-        //     newNodePosition,
-        //     null,
-        //     new PositioningItems<long>([]),
-        //     new PositioningItems<BTreeIndex<TOphValue>>([])));
 
         if (_numNodes % AllocateNodes == 0)
         {

@@ -47,44 +47,31 @@ public class BTreeIndexer<TOphValue>(
 
     private void CheckOverflow(BTreeNode<TOphValue> node)
     {
-        if (!order.IsOverflowed(node.Indices.Length)) return;
-
-        var splitResult = SplitNode(node);
-        var rightId = store.AllocateId();
-
-        BTreeNode<TOphValue>? parent;
-        if (!node.ParentId.HasValue)
+        while (true)
         {
-            parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
+            if (!order.IsOverflowed(node.Indices.Length)) return;
+
+            var splitResult = SplitNode(node);
+            var rightId = store.AllocateId();
+
+            BTreeNode<TOphValue>? parent;
+            if (!node.ParentId.HasValue)
+            {
+                parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
+            }
+            else
+            {
+                parent = store.GetNode(node.ParentId.Value);
+                parent = AddIndexAndNodeToParent(parent.Value, insertingNode: rightId, insertAfterNode: node.Id, insertingIndex: splitResult.PopupIndex);
+            }
+
+            CreateOrUpdateNode(node.Id, parent.Value.Id, splitResult.LeftChildren, splitResult.LeftIndices, false);
+
+            CreateOrUpdateNode(rightId, parent.Value.Id, splitResult.RightChildren, splitResult.RightIndices, true);
+
+            // repeat recursively until we reach the root or find a node that is not overflowed
+            node = parent.Value;
         }
-        else
-        {
-            parent = store.GetNode(node.ParentId.Value);
-            parent = AddIndexAndNodeToParent(
-                parent.Value,
-                insertingNode: rightId,
-                insertAfterNode: node.Id,
-                insertingIndex: splitResult.PopupIndex);
-        }
-
-        CreateOrUpdateNode(
-            node.Id,
-            parent.Value.Id,
-            splitResult.LeftChildren,
-            splitResult.LeftIndices,
-            false
-        );
-
-        CreateOrUpdateNode(
-            rightId,
-            parent.Value.Id,
-            splitResult.RightChildren,
-            splitResult.RightIndices,
-            true
-        );
-
-        // repeat recursively until we reach the root or find a node that is not overflowed
-        CheckOverflow(parent.Value);
     }
 
     private static SplitBTreeNodeResult SplitNode(BTreeNode<TOphValue> node)
@@ -177,17 +164,16 @@ public class BTreeIndexer<TOphValue>(
         while (true)
         {
             if (searchInNode.Children.Length == 0)
+            {
                 // this is a leaf node, no need to search further
                 return FindTargetIn(insertingIndex, searchInNode);
+            }
 
             // search child where our index which is greater than our index to drill down
-            for (var i = 0; i < searchInNode.Indices.Length; i++)
+            var insertingIndexPosition = searchInNode.Indices.SearchPosition(insertingIndex, indexComparer.Compare);
+            if (insertingIndexPosition < searchInNode.Indices.Length)
             {
-                var existingIndex = searchInNode.Indices[i];
-                var indexCompareResult = indexComparer.Compare(insertingIndex, existingIndex);
-                if (indexCompareResult > 0) continue;
-
-                var nodeId = searchInNode.Children[i];
+                var nodeId = searchInNode.Children[insertingIndexPosition];
                 var node = store.GetNode(nodeId);
                 return FindTarget(insertingIndex, node);
             }
@@ -201,17 +187,8 @@ public class BTreeIndexer<TOphValue>(
 
     private FindTargetResult FindTargetIn(BTreeIndex<TOphValue> index, BTreeNode<TOphValue> target)
     {
-        for (var i = 0; i < target.Indices.Length; i++)
-        {
-            var existingIndex = target.Indices[i];
-            var indexCompareResult = indexComparer.Compare(index, existingIndex);
-            if (indexCompareResult <= 0)
-                // our index is less than or equal to the other index, we found right place
-                return new FindTargetResult(target, i);
-        }
-
-        // return the latest position
-        return new FindTargetResult(target, target.Indices.Length);
+        var position = target.Indices.SearchPosition(index, indexComparer.Compare);
+        return new FindTargetResult(target, position);
     }
 
     private readonly struct FindTargetResult(BTreeNode<TOphValue> target, int position)
