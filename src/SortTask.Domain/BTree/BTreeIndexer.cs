@@ -160,19 +160,20 @@ public class BTreeIndexer<TOphValue>(
         );
         store.SaveNode(node);
 
-        if (childrenParentIdChanged)
-            // change parent id of the children to this node's id
-            foreach (var childId in newChildren.Values)
-            {
-                var child = store.GetNode(childId);
-                child = new BTreeNode<TOphValue>(
-                    child.Id,
-                    nodeId,
-                    child.Children,
-                    child.Indices
-                );
-                store.SaveNode(child);
-            }
+        if (!childrenParentIdChanged) return;
+
+        // change parent id of the children to this node's id
+        foreach (var childId in newChildren.Values)
+        {
+            var child = store.GetNode(childId);
+            child = new BTreeNode<TOphValue>(
+                child.Id,
+                nodeId,
+                child.Children,
+                child.Indices
+            );
+            store.SaveNode(child);
+        }
     }
 
     private FindTargetResult FindTarget(
@@ -182,8 +183,10 @@ public class BTreeIndexer<TOphValue>(
         while (true)
         {
             if (searchInNode.Children.Length == 0)
+            {
                 // this is a leaf node, no need to search further
                 return FindTargetIn(insertingIndex, searchInNode);
+            }
 
             // search child where our index which is greater than our index to drill down
             for (var i = 0; i < searchInNode.Indices.Length; i++)
@@ -211,8 +214,10 @@ public class BTreeIndexer<TOphValue>(
             var existingIndex = target.Indices[i];
             var indexCompareResult = indexComparer.Compare(index, existingIndex);
             if (indexCompareResult <= 0)
+            {
                 // our index is less than or equal to the other index, we found right place
                 return new FindTargetResult(target, i);
+            }
         }
 
         // return the latest position
