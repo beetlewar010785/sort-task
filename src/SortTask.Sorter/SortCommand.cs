@@ -72,11 +72,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 new BTreeOrder(AdapterConst.BTreeOrder),
                 new Oph(AdapterConst.NumIndexOphWords));
 
-            foreach (var initializer in compositionRoot.Initializers)
-            {
-                initializer.Initialize();
-            }
-
             Execute(compositionRoot, cts.Token);
 
             AnsiConsole.MarkupLine(

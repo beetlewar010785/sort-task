@@ -16,8 +16,7 @@ public class CompositionRoot<TOphValue>(
     OphCollisionDetector<TOphValue> ophCollisionDetector,
     RowLookupCache rowLookupCache,
     BTreeStoreCache<TOphValue> bTreeStoreCache,
-    IList<IDisposable> disposables,
-    IList<IInitializer> initializers) : IDisposable
+    IList<IDisposable> disposables) : IDisposable
     where TOphValue : struct
 {
     public ICommand<BuildIndexCommand.Result>
@@ -31,8 +30,6 @@ public class CompositionRoot<TOphValue>(
     public RowLookupCache RowLookupCache => rowLookupCache;
 
     public BTreeStoreCache<TOphValue> BTreeStoreCache => bTreeStoreCache;
-
-    public IEnumerable<IInitializer> Initializers => initializers;
 
     public void Dispose()
     {
@@ -75,8 +72,7 @@ public static class CompositionRootBuilder
         var encoding = AdapterConst.Encoding;
 
         var indexFile = File.Create(indexFilePath);
-        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter<T>(indexFile, order, ophReadWriter);
-        var streamBTreeStore = new StreamBTreeStore<T>(bTreeNodeReadWriter);
+        var streamBTreeStore = new StreamBTreeStore<T>(indexFile, order, ophReadWriter);
         var store = new BTreeStoreCache<T>(streamBTreeStore);
 
         var unsortedFile = File.OpenRead(unsortedFilePath);
@@ -113,7 +109,6 @@ public static class CompositionRootBuilder
             ophCollisionDetector,
             lookup,
             store,
-            [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile],
-            [streamBTreeStore]);
+            [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile]);
     }
 }

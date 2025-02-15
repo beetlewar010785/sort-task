@@ -4,13 +4,13 @@ using SortTask.Domain.BTree;
 
 namespace SortTask.Adapter.Test.BTree;
 
-public class StreamBTreeNodeReadWriterTests
+public class StreamBTreeStoreTests
 {
     [Test]
-    public async Task ShouldWriteReadNode()
+    public async Task ShouldGetSavedNode()
     {
         await using var stream = new MemoryStream();
-        var sut = new StreamBTreeNodeReadWriter<OphValue>(stream, new BTreeOrder(2), new OphReadWriter(2));
+        var sut = new StreamBTreeStore<OphValue>(stream, new BTreeOrder(2), new OphReadWriter(2));
 
         const long id = 0L;
         var initialNode = new BTreeNode<OphValue>(
@@ -23,9 +23,9 @@ public class StreamBTreeNodeReadWriterTests
             ])
         );
 
-        sut.WriteNode(initialNode);
+        sut.SaveNode(initialNode);
 
-        var actualNode = sut.ReadNode(id);
+        var actualNode = sut.GetNode(id);
 
         var initialJson = JsonSerializer.Serialize(initialNode);
         var actualJson = JsonSerializer.Serialize(actualNode);
