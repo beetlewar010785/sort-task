@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace SortTask.Application.Decorators;
 
 public class ProgressRenderCommand<TResult>(

@@ -108,15 +108,9 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
     private static void Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
         where TOphValue : struct
     {
-        foreach (var _ in compositionRoot.BuildIndexCommand.Execute())
-        {
-            token.ThrowIfCancellationRequested();
-        }
+        foreach (var _ in compositionRoot.BuildIndexCommand.Execute()) token.ThrowIfCancellationRequested();
 
-        foreach (var _ in compositionRoot.SortRowsCommand.Execute())
-        {
-            token.ThrowIfCancellationRequested();
-        }
+        foreach (var _ in compositionRoot.SortRowsCommand.Execute()) token.ThrowIfCancellationRequested();
     }
 
     // ReSharper disable once ClassNeverInstantiated.Global

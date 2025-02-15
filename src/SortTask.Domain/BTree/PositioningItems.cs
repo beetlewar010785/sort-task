@@ -28,4 +28,30 @@ public readonly struct PositioningItems<T>(T[] values)
 
         return -1;
     }
+
+    public int SearchPosition(T value, Comparison<T> comparer)
+    {
+        int left = 0, right = values.Length - 1;
+
+        while (left <= right)
+        {
+            var mid = left + (right - left) / 2;
+            var existingValue = values[mid];
+            var compareResult = comparer(value, existingValue);
+
+            switch (compareResult)
+            {
+                case 0:
+                    return mid;
+                case < 0:
+                    right = mid - 1;
+                    break;
+                default:
+                    left = mid + 1;
+                    break;
+            }
+        }
+
+        return left;
+    }
 }

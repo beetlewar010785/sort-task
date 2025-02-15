@@ -57,10 +57,7 @@ public class CreateTestFileCommand : AsyncCommand<CreateTestFileCommand.Settings
 
             using var compositionRoot = CompositionRoot.Build(settings.FilePath, settings.FileSize);
 
-            foreach (var _ in compositionRoot.FeedRowCommand.Execute())
-            {
-                cts.Token.ThrowIfCancellationRequested();
-            }
+            foreach (var _ in compositionRoot.FeedRowCommand.Execute()) cts.Token.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException)
         {

@@ -51,9 +51,6 @@ public class StreamBTreeStoreTests
                 new PositioningItems<BTreeIndex<OphValue>>([])));
         }
 
-        foreach (var id in ids)
-        {
-            Assert.DoesNotThrow(() => sut.GetNode(id));
-        }
+        foreach (var id in ids) Assert.DoesNotThrow(() => sut.GetNode(id));
     }
 }

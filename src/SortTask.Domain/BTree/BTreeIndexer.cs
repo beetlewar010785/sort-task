@@ -47,50 +47,40 @@ public class BTreeIndexer<TOphValue>(
 
     private void CheckOverflow(BTreeNode<TOphValue> node)
     {
-        if (!order.IsOverflowed(node.Indices.Length))
-        {
-            return;
-        }
+        if (!order.IsOverflowed(node.Indices.Length)) return;
 
         var splitResult = SplitNode(node);
         var rightId = store.AllocateId();
 
         BTreeNode<TOphValue>? parent = null;
-        if (node.ParentId.HasValue)
-        {
-            parent = store.GetNode(node.ParentId.Value);
-        }
+        if (node.ParentId.HasValue) parent = store.GetNode(node.ParentId.Value);
 
         if (parent == null)
-        {
             // if the node does not have parent, it means it is root
             // then we need to assign new root
             parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
-        }
         else
-        {
             // when we have a parent, we add an index to the parent and created child node
             parent = AddIndexAndNodeToParent(
-                parent: parent.Value,
+                parent.Value,
                 insertingNode: rightId,
                 insertAfterNode: node.Id,
                 insertingIndex: splitResult.PopupIndex);
-        }
 
         CreateOrUpdateNode(
-            nodeId: node.Id,
-            newParentId: parent.Value.Id,
-            newChildren: splitResult.LeftChildren,
-            newIndices: splitResult.LeftIndices,
-            childrenParentIdChanged: false
+            node.Id,
+            parent.Value.Id,
+            splitResult.LeftChildren,
+            splitResult.LeftIndices,
+            false
         );
 
         CreateOrUpdateNode(
-            nodeId: rightId,
-            newParentId: parent.Value.Id,
-            newChildren: splitResult.RightChildren,
-            newIndices: splitResult.RightIndices,
-            childrenParentIdChanged: true
+            rightId,
+            parent.Value.Id,
+            splitResult.RightChildren,
+            splitResult.RightIndices,
+            true
         );
 
         // repeat recursively until we reach the root or find a node that is not overflowed

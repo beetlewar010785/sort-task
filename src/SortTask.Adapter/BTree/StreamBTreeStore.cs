@@ -7,15 +7,15 @@ public class StreamBTreeStore<TOphValue>
 {
     private const int NoRootId = -1;
     private const int AllocateNodes = 10000;
-
-    private readonly Stream _stream;
+    private readonly byte[] _allocateBuf;
+    private readonly byte[] _nodeBuf;
+    private readonly int _nodeSize;
     private readonly IOphReadWriter<TOphValue> _ophReadWriter;
 
+    private readonly Stream _stream;
+
     private long _numNodes;
-    private readonly int _nodeSize;
     private long? _rootId;
-    private readonly byte[] _nodeBuf;
-    private readonly byte[] _allocateBuf;
 
     public StreamBTreeStore(
         Stream stream,
@@ -39,13 +39,20 @@ public class StreamBTreeStore<TOphValue>
     public long AllocateId()
     {
         var newNodePosition = _numNodes * _nodeSize;
-        if(_numNodes % AllocateNodes == 0)
-        {
-            // allocation required
-            _stream.Position = newNodePosition;
-            _stream.Write(_allocateBuf);
-        }
 
+        SaveNode(new BTreeNode<TOphValue>(
+            newNodePosition,
+            null,
+            new PositioningItems<long>([]),
+            new PositioningItems<BTreeIndex<TOphValue>>([])));
+
+        // if(_numNodes % AllocateNodes == 0)
+        // {
+        //     // allocation required
+        //     _stream.Position = newNodePosition;
+        //     _stream.Write(_allocateBuf);
+        // }
+        //
         _numNodes++;
         return newNodePosition;
     }
@@ -83,9 +90,15 @@ public class StreamBTreeStore<TOphValue>
         _stream.Flush();
     }
 
-    public long? GetRoot() => _rootId;
+    public long? GetRoot()
+    {
+        return _rootId;
+    }
 
-    public void SetRoot(long id) => _rootId = id;
+    public void SetRoot(long id)
+    {
+        _rootId = id;
+    }
 
     private int WriteIndices(IEnumerable<BTreeIndex<TOphValue>> indices, Span<byte> target, int position)
     {

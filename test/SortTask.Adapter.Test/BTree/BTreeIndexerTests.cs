@@ -41,10 +41,7 @@ public class BTreeIndexerTests
 
         using var iterationStream = new MemoryStream(unsortedRowStream.ToArray());
         var iterationRowReadWriter = new StreamRowStore(iterationStream, testCase.Encoding);
-        foreach (var row in iterationRowReadWriter.IterateOverRows())
-        {
-            sut.Index(row.Row, row.Offset, row.Length);
-        }
+        foreach (var row in iterationRowReadWriter.IterateOverRows()) sut.Index(row.Row, row.Offset, row.Length);
 
         var traverser = new BTreeIndexTraverser<OphValue>(store);
         var sortedRows = traverser
