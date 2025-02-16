@@ -84,18 +84,6 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
             AnsiConsole.MarkupLine(
                 $"[yellow]Index comparisons: [/] {compositionRoot.CollisionDetector.ComparisonCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Row lookup skip: [/] {compositionRoot.RowLookupCache.FindRowSkipCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Row lookup execute: [/] {compositionRoot.RowLookupCache.FindRowExecuteCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Get node skip: [/] {compositionRoot.BTreeStoreCache.GetNodeSkipCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Get node execute: [/] {compositionRoot.BTreeStoreCache.GetNodeExecuteCount}");
         }
         catch (OperationCanceledException)
         {

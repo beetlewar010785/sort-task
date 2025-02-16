@@ -9,8 +9,4 @@
       <ProjectReference Include="..\SortTask.Domain\SortTask.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="BitFaster.Caching"/>
-    </ItemGroup>
-
 </Project>
