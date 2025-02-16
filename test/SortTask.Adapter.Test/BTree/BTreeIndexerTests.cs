@@ -29,7 +29,7 @@ public class BTreeIndexerTests
         var ophComparer = new OphComparer();
         var indexComparer = new BTreeIndexComparer<OphValue>(ophComparer, rowComparer, unsortedStreamRowReadWriter);
         var ophReadWriter = new OphReadWriter(ophWords);
-        var store = new StreamBTreeStore<OphValue>(indexStream, testCase.Order, ophReadWriter);
+        using var store = new StreamBTreeStore<OphValue>(indexStream, testCase.Order, ophReadWriter);
 
         var sut = new BTreeIndexer<OphValue>(
             store,

@@ -110,6 +110,6 @@ public static class CompositionRootBuilder
             ophCollisionDetector,
             lookup,
             store,
-            [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile]);
+            [streamBTreeStore, unsortedFile, unsortedFileIterationStream, sortedFile, indexFile]);
     }
 }

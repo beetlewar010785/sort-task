@@ -3,10 +3,11 @@ using SortTask.Domain.BTree;
 namespace SortTask.Adapter.BTree;
 
 public class StreamBTreeStore<TOphValue>
-    : IBTreeStore<TOphValue> where TOphValue : struct
+    : IBTreeStore<TOphValue>, IDisposable where TOphValue : struct
 {
     private const int NoRootId = -1;
     private const int AllocateBytes = 100000000;
+    private const int NodesCacheCount = 1000000;
 
     private readonly IOphReadWriter<TOphValue> _ophReadWriter;
     private readonly Stream _stream;
@@ -16,6 +17,8 @@ public class StreamBTreeStore<TOphValue>
     private readonly int _nodeSize;
     private long _numNodes;
     private long? _rootId;
+
+    private readonly Dictionary<long, BTreeNode<TOphValue>> _nodesCache = new();
 
     public StreamBTreeStore(
         Stream stream,
@@ -55,34 +58,13 @@ public class StreamBTreeStore<TOphValue>
 
     public BTreeNode<TOphValue> GetNode(long id)
     {
-        _stream.Position = id;
-        _stream.ReadExactly(_nodeBuf);
-        var position = 0;
-        (var parentId, position) = BinaryReadWriter.ReadLong(_nodeBuf, position);
-        (var numIndices, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
-        (var numChildren, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
-        (var indices, position) = ReadIndices(numIndices, _nodeBuf, position);
-        var children = ReadChildren(numChildren, _nodeBuf, position);
-
-        return new BTreeNode<TOphValue>(
-            id,
-            parentId == NoRootId ? null : parentId,
-            children,
-            indices
-        );
+        return _nodesCache.TryGetValue(id, out var node) ? node : ReadNode(id);
     }
 
     public void SaveNode(BTreeNode<TOphValue> node)
     {
-        var position = BinaryReadWriter.WriteLong(node.ParentId ?? NoRootId, _nodeBuf, 0);
-        position = BinaryReadWriter.WriteShort(checked((short)node.Indices.Length), _nodeBuf, position);
-        position = BinaryReadWriter.WriteShort(checked((short)node.Children.Length), _nodeBuf, position);
-        position = WriteIndices(node.Indices.Values, _nodeBuf, position);
-        position = WriteChildren(node.Children.Values, _nodeBuf, position);
-
-        _stream.Position = node.Id;
-        _stream.Write(_nodeBuf);
-        _stream.Flush();
+        _nodesCache[node.Id] = node;
+        FlushIfRequired();
     }
 
     public long? GetRoot()
@@ -93,6 +75,12 @@ public class StreamBTreeStore<TOphValue>
     public void SetRoot(long id)
     {
         _rootId = id;
+    }
+
+    public void Dispose()
+    {
+        Flush();
+        GC.SuppressFinalize(this);
     }
 
     private int WriteIndices(IEnumerable<BTreeIndex<TOphValue>> indices, Span<byte> target, int position)
@@ -144,5 +132,57 @@ public class StreamBTreeStore<TOphValue>
         }
 
         return new PositioningItems<long>(children);
+    }
+
+    private void FlushIfRequired()
+    {
+        if (_nodesCache.Count < NodesCacheCount)
+        {
+            return;
+        }
+
+        Flush();
+    }
+
+    private void Flush()
+    {
+        foreach (var nodeCache in _nodesCache)
+        {
+            WriteNode(nodeCache.Value);
+        }
+
+        _nodesCache.Clear();
+    }
+
+    private void WriteNode(BTreeNode<TOphValue> node)
+    {
+        var position = BinaryReadWriter.WriteLong(node.ParentId ?? NoRootId, _nodeBuf, 0);
+        position = BinaryReadWriter.WriteShort(checked((short)node.Indices.Length), _nodeBuf, position);
+        position = BinaryReadWriter.WriteShort(checked((short)node.Children.Length), _nodeBuf, position);
+        position = WriteIndices(node.Indices.Values, _nodeBuf, position);
+        _ = WriteChildren(node.Children.Values, _nodeBuf, position);
+
+        _stream.Position = node.Id;
+        _stream.Write(_nodeBuf);
+        _stream.Flush();
+    }
+
+    private BTreeNode<TOphValue> ReadNode(long id)
+    {
+        _stream.Position = id;
+        _stream.ReadExactly(_nodeBuf);
+        var position = 0;
+        (var parentId, position) = BinaryReadWriter.ReadLong(_nodeBuf, position);
+        (var numIndices, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
+        (var numChildren, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
+        (var indices, position) = ReadIndices(numIndices, _nodeBuf, position);
+        var children = ReadChildren(numChildren, _nodeBuf, position);
+
+        return new BTreeNode<TOphValue>(
+            id,
+            parentId == NoRootId ? null : parentId,
+            children,
+            indices
+        );
     }
 }
