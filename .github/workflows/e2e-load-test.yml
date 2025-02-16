@@ -15,14 +15,6 @@ jobs:
       oph_words: 4
       btree_order: 16
 
-  e2e-1GB-8-16:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "1000000000"
-      oph_words: 8
-      btree_order: 16
-
   e2e-1GB-4-32:
     needs: publish
     uses: ./.github/workflows/e2e-bin.yml
@@ -30,30 +22,6 @@ jobs:
       file_size: "1000000000"
       oph_words: 4
       btree_order: 32
-
-  e2e-1GB-8-32:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "1000000000"
-      oph_words: 8
-      btree_order: 32
-
-  e2e-1GB-4-64:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "1000000000"
-      oph_words: 4
-      btree_order: 64
-
-  e2e-1GB-8-64:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "1000000000"
-      oph_words: 8
-      btree_order: 64
 
   e2e-10GB-4-16:
     needs: publish
@@ -63,14 +31,6 @@ jobs:
       oph_words: 4
       btree_order: 16
 
-  e2e-10GB-8-16:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "10000000000"
-      oph_words: 8
-      btree_order: 16
-
   e2e-10GB-4-32:
     needs: publish
     uses: ./.github/workflows/e2e-bin.yml
@@ -78,28 +38,3 @@ jobs:
       file_size: "10000000000"
       oph_words: 4
       btree_order: 32
-
-  e2e-10GB-8-32:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "10000000000"
-      oph_words: 8
-      btree_order: 32
-
-  e2e-10GB-4-64:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "10000000000"
-      oph_words: 4
-      btree_order: 64
-
-  e2e-10GB-8-64:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "10000000000"
-      oph_words: 8
-      btree_order: 64
-

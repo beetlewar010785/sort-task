@@ -135,7 +135,7 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
         [CommandOption("-o|--btree-order")]
         [Description("BTree order")]
-        public int BTreeOrder { get; set; } = 32;
+        public int BTreeOrder { get; set; } = 16;
 
         [CommandOption("-w|--oph-words")]
         [Description("Number of OPH words * 64 bit")]
