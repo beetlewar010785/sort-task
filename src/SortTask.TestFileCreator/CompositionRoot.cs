@@ -21,6 +21,7 @@ public class CompositionRoot(
     public static CompositionRoot Build(string filePath, long estimatedSize)
     {
         var file = File.Create(filePath);
+        //file.SetLength(estimatedSize);
 
         var rowWriter = new StreamRowStore(file, AdapterConst.Encoding);
 

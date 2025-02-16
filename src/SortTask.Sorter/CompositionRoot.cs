@@ -70,12 +70,14 @@ public static class CompositionRootBuilder
         where T : struct
     {
         var encoding = AdapterConst.Encoding;
+        var unsortedFile = File.OpenRead(unsortedFilePath);
+        var sortedFile = File.Create(sortedFilePath);
+        sortedFile.SetLength(unsortedFile.Length);
 
         var indexFile = File.Create(indexFilePath);
         var streamBTreeStore = new StreamBTreeStore<T>(indexFile, order, ophReadWriter);
         var store = new BTreeStoreCache<T>(streamBTreeStore);
 
-        var unsortedFile = File.OpenRead(unsortedFilePath);
         var rowLookup = new StreamRowStore(unsortedFile, encoding);
         var lookup = new RowLookupCache(rowLookup);
 
@@ -97,7 +99,6 @@ public static class CompositionRootBuilder
             .DecorateWithStreamLength(unsortedFileIterationStream)
             .DecorateWithProgressRender(progressRenderer);
 
-        var sortedFile = File.Create(sortedFilePath);
         var outputRowReadWriter = new StreamRowStore(sortedFile, encoding);
         var sortRowsCommand = new SortRowsCommand<T>(indexTraverser, lookup, outputRowReadWriter)
             .DecorateWithPredefinedStreamLength(sortedFile, unsortedFile.Length)

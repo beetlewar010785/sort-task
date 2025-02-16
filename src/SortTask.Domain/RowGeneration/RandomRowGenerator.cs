@@ -7,7 +7,7 @@ public class RandomRowGenerator(
     int minNumber = 1,
     int maxNumber = 1000000,
     int minWordsInSentence = 2,
-    int maxWordsInSentence = 42
+    int maxWordsInSentence = 10
 ) : IRowGenerator
 {
     private readonly Faker _faker = new();
