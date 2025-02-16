@@ -6,7 +6,7 @@ public class StreamBTreeStore<TOphValue>
     : IBTreeStore<TOphValue> where TOphValue : struct
 {
     private const int NoRootId = -1;
-    private const int AllocateNodes = 10000;
+    private const int AllocateBytes = 100000000;
 
     private readonly IOphReadWriter<TOphValue> _ophReadWriter;
     private readonly Stream _stream;
@@ -33,14 +33,15 @@ public class StreamBTreeStore<TOphValue>
             sizeof(long) * order.MaxChildren; // Children;
 
         _nodeBuf = new byte[_nodeSize];
-        _allocateBuf = new byte[_nodeSize * AllocateNodes];
+        _allocateBuf = new byte[AllocateBytes];
     }
 
     public long AllocateId()
     {
         var newNodePosition = _numNodes * _nodeSize;
+        var endOfNodeOffset = newNodePosition + _nodeSize;
 
-        if (_numNodes % AllocateNodes == 0)
+        if (endOfNodeOffset >= _stream.Length)
         {
             // allocation required
             _stream.Position = newNodePosition;
