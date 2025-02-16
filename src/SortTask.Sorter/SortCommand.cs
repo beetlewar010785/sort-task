@@ -50,8 +50,8 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
 
         AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.UnsortedFilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.SortedFilePath.EscapeMarkup()}");
-        AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
         AnsiConsole.MarkupLine($"[yellow]OPH words: [/] {settings.OphWords}");
+        AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
         AnsiConsole.MarkupLine("[green]Start sorting.[/]");
 
