@@ -15,17 +15,18 @@ public class RowLookupCache(IRowLookup inner, int capacity = 10000) : IRowLookup
 
     public Row FindRow(long offset, int length)
     {
-        if (_lru.TryGet(offset, out var row))
-        {
-            FindRowSkipCount++;
-            return row;
-        }
-
-        row = inner.FindRow(offset, length);
-        FindRowExecuteCount++;
-
-        _lru.AddOrUpdate(offset, row);
-
-        return row;
+        return inner.FindRow(offset, length);
+        // if (_lru.TryGet(offset, out var row))
+        // {
+        //     FindRowSkipCount++;
+        //     return row;
+        // }
+        //
+        // row = inner.FindRow(offset, length);
+        // FindRowExecuteCount++;
+        //
+        // _lru.AddOrUpdate(offset, row);
+        //
+        // return row;
     }
 }

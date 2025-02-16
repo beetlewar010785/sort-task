@@ -36,23 +36,25 @@ public class BTreeStoreCache<TOphValue>(
 
     public BTreeNode<TOphValue> GetNode(long id)
     {
-        if (_lru.TryGet(id, out var node))
-        {
-            GetNodeSkipCount++;
-            return node;
-        }
-
-        node = inner.GetNode(id);
-        GetNodeExecuteCount++;
-
-        _lru.AddOrUpdate(node.Id, node);
-
-        return node;
+        return inner.GetNode(id);
+        // if (_lru.TryGet(id, out var node))
+        // {
+        //     GetNodeSkipCount++;
+        //     return node;
+        // }
+        //
+        // node = inner.GetNode(id);
+        // GetNodeExecuteCount++;
+        //
+        // _lru.AddOrUpdate(node.Id, node);
+        //
+        // return node;
     }
 
     public void SaveNode(BTreeNode<TOphValue> node)
     {
         inner.SaveNode(node);
-        _lru.AddOrUpdate(node.Id, node);
+        // inner.SaveNode(node);
+        // _lru.AddOrUpdate(node.Id, node);
     }
 }
