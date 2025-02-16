@@ -29,7 +29,9 @@ generate-bin:
 	dotnet $(GENERATOR_BIN)/SortTask.TestFileCreator.dll -f $(UNSORTED_FILE) -s $(FILE_SIZE)
 
 sort-bin:
-	dotnet $(SORTER_BIN)/SortTask.Sorter.dll -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE)
+	dotnet $(SORTER_BIN)/SortTask.Sorter.dll -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE) \
+		$(if $(OPH_WORDS), -w $(OPH_WORDS)) \
+		$(if $(BTREE_ORDER), -o $(BTREE_ORDER))
 
 check-bin:
 	dotnet $(CHECKER_BIN)/SortTask.Checker.dll -f $(SORTED_FILE)
@@ -40,7 +42,9 @@ generate-src:
 	dotnet run --project ./src/SortTask.TestFileCreator -- -f $(UNSORTED_FILE) -s $(FILE_SIZE)
 
 sort-src:
-	dotnet run --project ./src/SortTask.Sorter -- -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE)
+	dotnet run --project ./src/SortTask.Sorter -- -u $(UNSORTED_FILE) -x $(INDEX_FILE) -s $(SORTED_FILE) \
+		$(if $(OPH_WORDS), -w $(OPH_WORDS)) \
+		$(if $(BTREE_ORDER), -o $(BTREE_ORDER))
 
 check-src:
 	dotnet run --project ./src/SortTask.Checker -- -f $(SORTED_FILE)

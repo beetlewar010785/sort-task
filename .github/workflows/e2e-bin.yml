@@ -4,8 +4,18 @@ on:
   workflow_call:
     inputs:
       file_size:
-        description: 'Size of the file for E2E test'
+        description: "Size of the file for E2E test"
         required: true
+        type: string
+
+      oph_words:
+        description: "Value for OPH_WORDS parameter"
+        required: false
+        type: string
+
+      btree_order:
+        description: "Value for BTREE_ORDER parameter"
+        required: false
         type: string
 
 jobs:
@@ -27,5 +37,15 @@ jobs:
 
       - name: Run E2E Test (Binary)
         run: |
-          FILE_SIZE=${{ inputs.file_size }} \
-          make run-bin
+          FILE_SIZE="${{ inputs.file_size }}"
+          MAKE_CMD="make run-bin FILE_SIZE=$FILE_SIZE"
+
+          if [[ -n "${{ inputs.oph_words }}" ]]; then
+            MAKE_CMD+=" OPH_WORDS=${{ inputs.oph_words }}"
+          fi
+
+          if [[ -n "${{ inputs.btree_order }}" ]]; then
+            MAKE_CMD+=" BTREE_ORDER=${{ inputs.btree_order }}"
+          fi
+
+          eval "$MAKE_CMD"
