@@ -27,8 +27,8 @@ public class StreamBTreeStore<TOphValue>
 
         _nodeSize =
             sizeof(long) + // ParentId
-            sizeof(int) + // NumIndices
-            sizeof(int) + // NumChildren
+            sizeof(short) + // NumIndices
+            sizeof(short) + // NumChildren
             (ophReadWriter.Size + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
             sizeof(long) * order.MaxChildren; // Children;
 
@@ -59,8 +59,8 @@ public class StreamBTreeStore<TOphValue>
         _stream.ReadExactly(_nodeBuf);
         var position = 0;
         (var parentId, position) = BinaryReadWriter.ReadLong(_nodeBuf, position);
-        (var numIndices, position) = BinaryReadWriter.ReadInt(_nodeBuf, position);
-        (var numChildren, position) = BinaryReadWriter.ReadInt(_nodeBuf, position);
+        (var numIndices, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
+        (var numChildren, position) = BinaryReadWriter.ReadShort(_nodeBuf, position);
         (var indices, position) = ReadIndices(numIndices, _nodeBuf, position);
         var children = ReadChildren(numChildren, _nodeBuf, position);
 
@@ -74,15 +74,14 @@ public class StreamBTreeStore<TOphValue>
 
     public void SaveNode(BTreeNode<TOphValue> node)
     {
-        var buf = new byte[_nodeSize];
-        var position = BinaryReadWriter.WriteLong(node.ParentId ?? NoRootId, buf, 0);
-        position = BinaryReadWriter.WriteInt(node.Indices.Length, buf, position);
-        position = BinaryReadWriter.WriteInt(node.Children.Length, buf, position);
-        position = WriteIndices(node.Indices.Values, buf, position);
-        _ = WriteChildren(node.Children.Values, buf, position);
+        var position = BinaryReadWriter.WriteLong(node.ParentId ?? NoRootId, _nodeBuf, 0);
+        position = BinaryReadWriter.WriteShort(checked((short)node.Indices.Length), _nodeBuf, position);
+        position = BinaryReadWriter.WriteShort(checked((short)node.Children.Length), _nodeBuf, position);
+        position = WriteIndices(node.Indices.Values, _nodeBuf, position);
+        position = WriteChildren(node.Children.Values, _nodeBuf, position);
 
         _stream.Position = node.Id;
-        _stream.Write(buf);
+        _stream.Write(_nodeBuf);
         _stream.Flush();
     }
 

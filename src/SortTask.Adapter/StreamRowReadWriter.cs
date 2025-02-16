@@ -25,7 +25,7 @@ public class StreamRowStore(Stream stream, Encoding encoding) : IRowWriter, IRow
         if (_buf.Length < length) _buf = new byte[length];
 
         stream.Position = offset;
-        stream.ReadAll(_buf.AsSpan(0, length));
+        stream.ReadExactly(_buf.AsSpan(0, length));
         var rowString = encoding.GetString(_buf.AsSpan(0, length));
         return DeserializeRow(rowString);
     }
