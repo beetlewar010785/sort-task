@@ -6,18 +6,19 @@ public class StreamBTreeStore<TOphValue>
     : IBTreeStore<TOphValue>, IDisposable where TOphValue : struct
 {
     private const int NoRootId = -1;
-    private const int AllocateBytes = 100000000;
-    private const int NodesCacheCount = 1000000;
+    private const int AllocateBytes = 100 * 1024 * 1024;
+    private const int CacheSizeInBytes = 100 * 1024 * 1024;
 
     private readonly IOphReadWriter<TOphValue> _ophReadWriter;
     private readonly Stream _stream;
 
-    private readonly byte[] _allocateBuf;
+    private readonly int _nodeCacheLimit;
     private readonly byte[] _nodeBuf;
     private readonly int _nodeSize;
     private long _numNodes;
     private long? _rootId;
 
+    private readonly Lazy<byte[]> _allocationBuf = new(() => new byte[AllocateBytes]);
     private readonly Dictionary<long, BTreeNode<TOphValue>> _nodesCache = new();
 
     public StreamBTreeStore(
@@ -28,15 +29,20 @@ public class StreamBTreeStore<TOphValue>
         _stream = stream;
         _ophReadWriter = ophReadWriter;
 
+        var indexSize =
+            ophReadWriter.Size + // oph
+            sizeof(long) + // offset
+            sizeof(int); // length
+
         _nodeSize =
             sizeof(long) + // ParentId
             sizeof(short) + // NumIndices
             sizeof(short) + // NumChildren
-            (ophReadWriter.Size + sizeof(long) + sizeof(int)) * order.MaxIndices + // Indices
+            indexSize * order.MaxIndices + // Indices
             sizeof(long) * order.MaxChildren; // Children;
 
         _nodeBuf = new byte[_nodeSize];
-        _allocateBuf = new byte[AllocateBytes];
+        _nodeCacheLimit = CacheSizeInBytes / _nodeSize;
     }
 
     public long AllocateId()
@@ -48,7 +54,7 @@ public class StreamBTreeStore<TOphValue>
         {
             // allocation required
             _stream.Position = newNodePosition;
-            _stream.Write(_allocateBuf);
+            _stream.Write(_allocationBuf.Value);
             _stream.Flush();
         }
 
@@ -136,7 +142,7 @@ public class StreamBTreeStore<TOphValue>
 
     private void FlushIfRequired()
     {
-        if (_nodesCache.Count < NodesCacheCount)
+        if (_nodesCache.Count < _nodeCacheLimit)
         {
             return;
         }

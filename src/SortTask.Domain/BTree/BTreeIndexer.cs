@@ -72,7 +72,6 @@ public class BTreeIndexer<TOphValue>(
             }
 
             CreateOrUpdateNode(node.Id, parent.Value.Id, splitResult.LeftChildren, splitResult.LeftIndices, false);
-
             CreateOrUpdateNode(rightId, parent.Value.Id, splitResult.RightChildren, splitResult.RightIndices, true);
 
             // repeat recursively until we reach the root or find a node that is not overflowed
