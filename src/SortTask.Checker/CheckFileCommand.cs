@@ -11,7 +11,7 @@ namespace SortTask.Checker;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage = "Usage: dotnet SortTask.Checker -f <file>";
 
@@ -21,13 +21,13 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
             AnsiConsole.WriteLine("Options:");
             AnsiConsole.WriteLine("  -f, --file   Path to the file to be checked");
             AnsiConsole.WriteLine("  -h, --help   Show help message");
-            return 0;
+            return Task.FromResult(0);
         }
 
         if (string.IsNullOrEmpty(settings.FilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] File path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         AnsiConsole.MarkupLine($"[yellow]Checking file:[/] {settings.FilePath.EscapeMarkup()}");
@@ -50,27 +50,30 @@ public class CheckFileCommand : AsyncCommand<CheckFileCommand.Settings>
 
             var compositionRoot = CompositionRoot.Build(settings.FilePath);
 
-            await foreach (var iteration in compositionRoot
-                               .CheckSortCommand
-                               .Execute(cts.Token))
+            foreach (var iteration in compositionRoot
+                         .CheckSortCommand
+                         .Execute())
             {
+                cts.Token.ThrowIfCancellationRequested();
+
                 if (iteration.Result is not CheckSortCommand.Result.ResultFailure failure) continue;
 
                 AnsiConsole.MarkupLine(
                     $"[red]File is not sorted. The row {failure.FailedRow} is less than the preceding row {failure.PrecedingRow}.[/]");
-                return 1;
+
+                return Task.FromResult(1);
             }
         }
         catch (OperationCanceledException)
         {
             AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
-            return 1;
+            return Task.FromResult(1);
         }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
-        return 0;
+        return Task.FromResult(0);
     }
 
     // ReSharper disable once ClassNeverInstantiated.Global

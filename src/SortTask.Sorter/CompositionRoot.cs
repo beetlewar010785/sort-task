@@ -14,10 +14,7 @@ public class CompositionRoot<TOphValue>(
     ICommand<SortRowsCommand<TOphValue>.Result>
         sortRowsCommand,
     OphCollisionDetector<TOphValue> ophCollisionDetector,
-    RowLookupCache rowLookupCache,
-    BTreeStoreCache<TOphValue> bTreeStoreCache,
-    IList<IDisposable> disposables,
-    IList<IInitializer> initializers) : IDisposable
+    IList<IDisposable> disposables) : IDisposable
     where TOphValue : struct
 {
     public ICommand<BuildIndexCommand.Result>
@@ -27,12 +24,6 @@ public class CompositionRoot<TOphValue>(
         SortRowsCommand => sortRowsCommand;
 
     public OphCollisionDetector<TOphValue> CollisionDetector => ophCollisionDetector;
-
-    public RowLookupCache RowLookupCache => rowLookupCache;
-
-    public BTreeStoreCache<TOphValue> BTreeStoreCache => bTreeStoreCache;
-
-    public IEnumerable<IInitializer> Initializers => initializers;
 
     public void Dispose()
     {
@@ -74,14 +65,14 @@ public static class CompositionRootBuilder
     {
         var encoding = AdapterConst.Encoding;
 
-        var indexFile = File.Create(indexFilePath);
-        var bTreeNodeReadWriter = new StreamBTreeNodeReadWriter<T>(indexFile, order, ophReadWriter);
-        var streamBTreeStore = new StreamBTreeStore<T>(bTreeNodeReadWriter);
-        var store = new BTreeStoreCache<T>(streamBTreeStore);
-
         var unsortedFile = File.OpenRead(unsortedFilePath);
-        var rowLookup = new StreamRowStore(unsortedFile, encoding);
-        var lookup = new RowLookupCache(rowLookup);
+        var sortedFile = File.Create(sortedFilePath);
+        sortedFile.SetLength(unsortedFile.Length);
+
+        var indexFile = File.Create(indexFilePath);
+        var store = new StreamBTreeStore<T>(indexFile, order, ophReadWriter);
+
+        var lookup = new StreamRowStore(unsortedFile, encoding);
 
         var ophCollisionDetector = new OphCollisionDetector<T>(ophComparer);
         var indexer = new BTreeIndexer<T>(
@@ -101,7 +92,6 @@ public static class CompositionRootBuilder
             .DecorateWithStreamLength(unsortedFileIterationStream)
             .DecorateWithProgressRender(progressRenderer);
 
-        var sortedFile = File.Create(sortedFilePath);
         var outputRowReadWriter = new StreamRowStore(sortedFile, encoding);
         var sortRowsCommand = new SortRowsCommand<T>(indexTraverser, lookup, outputRowReadWriter)
             .DecorateWithPredefinedStreamLength(sortedFile, unsortedFile.Length)
@@ -111,9 +101,6 @@ public static class CompositionRootBuilder
             buildIndexCommand,
             sortRowsCommand,
             ophCollisionDetector,
-            lookup,
-            store,
-            [unsortedFile, unsortedFileIterationStream, sortedFile, indexFile],
-            [streamBTreeStore]);
+            [store, unsortedFile, unsortedFileIterationStream, sortedFile, indexFile]);
     }
 }

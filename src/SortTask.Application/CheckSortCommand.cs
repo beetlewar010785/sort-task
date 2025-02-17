@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using SortTask.Domain;
 
 namespace SortTask.Application;
@@ -8,13 +7,12 @@ public class CheckSortCommand(
     IComparer<Row> rowComparer
 ) : ICommand<CheckSortCommand.Result>
 {
-    public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<CommandIteration<Result>> Execute()
     {
         const string operationName = "Checking Sort...";
 
         Row? previousRow = null;
-        await foreach (var row in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
+        foreach (var row in rowIterator.IterateOverRows())
         {
             if (previousRow != null)
             {

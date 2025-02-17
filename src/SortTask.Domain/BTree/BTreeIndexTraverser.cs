@@ -1,32 +1,28 @@
-using System.Runtime.CompilerServices;
-
 namespace SortTask.Domain.BTree;
 
 public class BTreeIndexTraverser<TOphValue>(IBTreeStore<TOphValue> store) : IBTreeIndexTraverser<TOphValue>
     where TOphValue : struct
 {
-    public async IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<BTreeIndex<TOphValue>> IterateOverIndex()
     {
-        var rootId = await store.GetRoot(cancellationToken);
+        var rootId = store.GetRoot();
         if (rootId == null) yield break;
 
-        var root = await store.GetNode(rootId.Value, cancellationToken);
+        var root = store.GetNode(rootId.Value);
 
-        await foreach (var index in IterateAsAsyncEnumerable(root, cancellationToken)) yield return index;
+        foreach (var index in IterateOverIndex(root))
+            yield return index;
     }
 
-    private async IAsyncEnumerable<BTreeIndex<TOphValue>> IterateAsAsyncEnumerable(
-        BTreeNode<TOphValue> node,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    private IEnumerable<BTreeIndex<TOphValue>> IterateOverIndex(BTreeNode<TOphValue> node)
     {
         for (var i = 0; i < node.Indices.Length + 1; i++) // +1 - for children traverse
         {
             // 1. Return children of this index (left) or the rightmost for the last index
             if (node.Children.Length > 0)
             {
-                var childNode = await store.GetNode(node.Children[i], cancellationToken);
-                await foreach (var childIndex in IterateAsAsyncEnumerable(childNode, cancellationToken))
+                var childNode = store.GetNode(node.Children[i]);
+                foreach (var childIndex in IterateOverIndex(childNode))
                     yield return childIndex;
             }
 

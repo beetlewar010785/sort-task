@@ -11,29 +11,29 @@ public class BTreeIndexer<TOphValue>(
 ) : IIndexer
     where TOphValue : struct
 {
-    public async Task Index(Row row, long offset, int length, CancellationToken cancellationToken)
+    public void Index(Row row, long offset, int length)
     {
         var sentenceBytes = encoding.GetBytes(row.Sentence);
         var ophHash = oph.Hash(sentenceBytes);
         var index = new BTreeIndex<TOphValue>(ophHash, offset, length);
 
-        var rootId = await store.GetRoot(cancellationToken);
+        var rootId = store.GetRoot();
         if (rootId == null)
         {
-            _ = await CreateNewRoot(index, new PositioningItems<long>([]), cancellationToken);
+            _ = CreateNewRoot(index, new PositioningItems<long>([]));
             return;
         }
 
-        var root = await store.GetNode(rootId.Value, cancellationToken);
-        var targetResult = await FindTarget(index, root, cancellationToken);
-        await InserBTreeIndex(targetResult.Target, targetResult.Position, index, cancellationToken);
+        var root = store.GetNode(rootId.Value);
+        var targetResult = FindTarget(index, root, row);
+        InsertBTreeIndex(targetResult.target, targetResult.position, index, row);
     }
 
-    private async Task InserBTreeIndex(
+    private void InsertBTreeIndex(
         BTreeNode<TOphValue> targetBTreeNode,
         int position,
         BTreeIndex<TOphValue> index,
-        CancellationToken cancellationToken)
+        Row row)
     {
         var newIndices = targetBTreeNode.Indices.Insert(index, position);
         targetBTreeNode = new BTreeNode<TOphValue>(
@@ -42,53 +42,37 @@ public class BTreeIndexer<TOphValue>(
             targetBTreeNode.Children,
             newIndices
         );
-        await store.SaveNode(targetBTreeNode, cancellationToken);
-        await CheckOverflow(targetBTreeNode, cancellationToken);
+        store.SaveNode(targetBTreeNode);
+        CheckOverflow(targetBTreeNode, row);
     }
 
-    private async Task CheckOverflow(BTreeNode<TOphValue> node, CancellationToken cancellationToken)
+    private void CheckOverflow(BTreeNode<TOphValue> node, Row row)
     {
         while (true)
         {
             if (!order.IsOverflowed(node.Indices.Length)) return;
 
             var splitResult = SplitNode(node);
-            var rightId = await store.AllocateId(cancellationToken);
+            var rightId = store.AllocateId();
 
-            BTreeNode<TOphValue>? parent = null;
-            if (node.ParentId.HasValue) parent = await store.GetNode(node.ParentId.Value, cancellationToken);
-
-            if (parent == null)
-                // if the node does not have parent, it means it is root
-                // then we need to assign new root
-                parent = await CreateNewRoot(
-                    splitResult.PopupIndex,
-                    new PositioningItems<long>([node.Id, rightId]),
-                    cancellationToken);
+            BTreeNode<TOphValue>? parent;
+            if (!node.ParentId.HasValue)
+            {
+                parent = CreateNewRoot(splitResult.PopupIndex, new PositioningItems<long>([node.Id, rightId]));
+            }
             else
-                // when we have a parent, we add an index to the parent and created child node
-                parent = await AddIndexAndNodeToParent(
+            {
+                parent = store.GetNode(node.ParentId.Value);
+                parent = AddIndexAndNodeToParent(
                     parent.Value,
                     insertingNode: rightId,
                     insertAfterNode: node.Id,
                     insertingIndex: splitResult.PopupIndex,
-                    cancellationToken: cancellationToken);
+                    row: row);
+            }
 
-            await CreateOrUpdateNode(
-                node.Id,
-                parent.Value.Id,
-                splitResult.LeftChildren,
-                splitResult.LeftIndices,
-                false,
-                cancellationToken);
-
-            await CreateOrUpdateNode(
-                rightId,
-                parent.Value.Id,
-                splitResult.RightChildren,
-                splitResult.RightIndices,
-                true,
-                cancellationToken);
+            CreateOrUpdateNode(node.Id, parent.Value.Id, splitResult.LeftChildren, splitResult.LeftIndices, false);
+            CreateOrUpdateNode(rightId, parent.Value.Id, splitResult.RightChildren, splitResult.RightIndices, true);
 
             // repeat recursively until we reach the root or find a node that is not overflowed
             node = parent.Value;
@@ -109,19 +93,17 @@ public class BTreeIndexer<TOphValue>(
         );
     }
 
-    private async Task<BTreeNode<TOphValue>> AddIndexAndNodeToParent(
+    private BTreeNode<TOphValue> AddIndexAndNodeToParent(
         BTreeNode<TOphValue> parent,
         BTreeIndex<TOphValue> insertingIndex,
         long insertingNode,
         long insertAfterNode,
-        CancellationToken cancellationToken)
+        Row row)
     {
-        var target = await FindTargetIn(insertingIndex, parent, cancellationToken);
-
         var insertingNodePosition = parent.Children.IndexOf(insertAfterNode) + 1;
         var newChildren = parent.Children.Insert(insertingNode, insertingNodePosition);
-
-        var newIndices = parent.Indices.Insert(insertingIndex, target.Position);
+        var position = parent.Indices.SearchPosition(insertingIndex, (x, y) => indexComparer.Compare(row, x, y));
+        var newIndices = parent.Indices.Insert(insertingIndex, position);
 
         parent = new BTreeNode<TOphValue>(
             parent.Id,
@@ -129,35 +111,33 @@ public class BTreeIndexer<TOphValue>(
             newChildren,
             newIndices
         );
-        await store.SaveNode(parent, cancellationToken);
+        store.SaveNode(parent);
 
         return parent;
     }
 
-    private async Task<BTreeNode<TOphValue>> CreateNewRoot(
+    private BTreeNode<TOphValue> CreateNewRoot(
         BTreeIndex<TOphValue> index,
-        PositioningItems<long> children,
-        CancellationToken cancellationToken)
+        PositioningItems<long> children)
     {
-        var rootId = await store.AllocateId(cancellationToken);
+        var rootId = store.AllocateId();
         var root = new BTreeNode<TOphValue>(
             rootId,
             null,
             children,
             new PositioningItems<BTreeIndex<TOphValue>>([index])
         );
-        await store.SaveNode(root, cancellationToken);
-        await store.SetRoot(root.Id, cancellationToken);
+        store.SaveNode(root);
+        store.SetRoot(root.Id);
         return root;
     }
 
-    private async Task CreateOrUpdateNode(
+    private void CreateOrUpdateNode(
         long nodeId,
         long newParentId,
         PositioningItems<long> newChildren,
         PositioningItems<BTreeIndex<TOphValue>> newIndices,
-        bool childrenParentIdChanged,
-        CancellationToken cancellationToken
+        bool childrenParentIdChanged
     )
     {
         var node = new BTreeNode<TOphValue>(
@@ -166,72 +146,54 @@ public class BTreeIndexer<TOphValue>(
             newChildren,
             newIndices
         );
-        await store.SaveNode(node, cancellationToken);
+        store.SaveNode(node);
 
-        if (childrenParentIdChanged)
-            // change parent id of the children to this node's id
-            foreach (var childId in newChildren.Values)
-            {
-                var child = await store.GetNode(childId, cancellationToken);
-                child = new BTreeNode<TOphValue>(
-                    child.Id,
-                    nodeId,
-                    child.Children,
-                    child.Indices
-                );
-                await store.SaveNode(child, cancellationToken);
-            }
+        if (!childrenParentIdChanged) return;
+
+        // change parent id of the children to this node's id
+        foreach (var childId in newChildren.Values)
+        {
+            var child = store.GetNode(childId);
+            child = new BTreeNode<TOphValue>(
+                child.Id,
+                nodeId,
+                child.Children,
+                child.Indices
+            );
+            store.SaveNode(child);
+        }
     }
 
-    private async Task<FindTargetResult> FindTarget(BTreeIndex<TOphValue> insertingIndex,
+    private (BTreeNode<TOphValue> target, int position) FindTarget(
+        BTreeIndex<TOphValue> insertingIndex,
         BTreeNode<TOphValue> searchInNode,
-        CancellationToken cancellationToken)
+        Row row)
     {
         while (true)
         {
             if (searchInNode.Children.Length == 0)
+            {
                 // this is a leaf node, no need to search further
-                return await FindTargetIn(insertingIndex, searchInNode, cancellationToken);
+                var position =
+                    searchInNode.Indices.SearchPosition(insertingIndex, (x, y) => indexComparer.Compare(row, x, y));
+                return (searchInNode, position);
+            }
 
             // search child where our index which is greater than our index to drill down
-            for (var i = 0; i < searchInNode.Indices.Length; i++)
+            var insertingIndexPosition =
+                searchInNode.Indices.SearchPosition(insertingIndex, (x, y) => indexComparer.Compare(row, x, y));
+            if (insertingIndexPosition < searchInNode.Indices.Length)
             {
-                var existingIndex = searchInNode.Indices[i];
-                var indexCompareResult = await indexComparer.Compare(insertingIndex, existingIndex, cancellationToken);
-                if (indexCompareResult > 0) continue;
-
-                var nodeId = searchInNode.Children[i];
-                var node = await store.GetNode(nodeId, cancellationToken);
-                return await FindTarget(insertingIndex, node, cancellationToken);
+                var nodeId = searchInNode.Children[insertingIndexPosition];
+                var node = store.GetNode(nodeId);
+                return FindTarget(insertingIndex, node, row);
             }
 
             // our index is the greatest in the node, search in the rightmost child
             var latestNodeId = searchInNode.Children[^1];
-            var latestNode = await store.GetNode(latestNodeId, cancellationToken);
+            var latestNode = store.GetNode(latestNodeId);
             searchInNode = latestNode;
         }
-    }
-
-    private async Task<FindTargetResult> FindTargetIn(BTreeIndex<TOphValue> index, BTreeNode<TOphValue> target,
-        CancellationToken cancellationToken)
-    {
-        for (var i = 0; i < target.Indices.Length; i++)
-        {
-            var existingIndex = target.Indices[i];
-            var indexCompareResult = await indexComparer.Compare(index, existingIndex, cancellationToken);
-            if (indexCompareResult <= 0)
-                // our index is less than or equal to the other index, we found right place
-                return new FindTargetResult(target, i);
-        }
-
-        // return the latest position
-        return new FindTargetResult(target, target.Indices.Length);
-    }
-
-    private readonly struct FindTargetResult(BTreeNode<TOphValue> target, int position)
-    {
-        public BTreeNode<TOphValue> Target { get; } = target;
-        public int Position { get; } = position;
     }
 
     // we cannot return BTreeNode<TOphValue> because we do not have parent id yet

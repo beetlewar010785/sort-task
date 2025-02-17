@@ -14,13 +14,13 @@ public class CompositionRoot(
     public void Dispose()
     {
         foreach (var disposable in disposables) disposable.Dispose();
-
         GC.SuppressFinalize(this);
     }
 
     public static CompositionRoot Build(string filePath, long estimatedSize)
     {
         var file = File.Create(filePath);
+        file.SetLength(estimatedSize);
 
         var rowWriter = new StreamRowStore(file, AdapterConst.Encoding);
 

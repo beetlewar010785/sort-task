@@ -37,4 +37,16 @@ public static class BinaryReadWriter
     {
         return (BitConverter.ToInt32(buf[position..]), position + sizeof(int));
     }
+
+    public static int WriteShort(short value, Span<byte> target, int position)
+    {
+        return !BitConverter.TryWriteBytes(target[position..], value)
+            ? throw new InvalidOperationException("Failed to write short.")
+            : position + sizeof(short);
+    }
+
+    public static (short, int) ReadShort(ReadOnlySpan<byte> buf, int position)
+    {
+        return (BitConverter.ToInt16(buf[position..]), position + sizeof(short));
+    }
 }

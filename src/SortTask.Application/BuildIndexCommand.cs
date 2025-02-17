@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using SortTask.Domain;
 
 namespace SortTask.Application;
@@ -8,14 +7,13 @@ public class BuildIndexCommand(
     IIndexer indexer
 ) : ICommand<BuildIndexCommand.Result>
 {
-    public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<CommandIteration<Result>> Execute()
     {
         const string operationName = "Building Index...";
 
-        await foreach (var rowIteration in rowIterator.ReadAsAsyncEnumerable(cancellationToken))
+        foreach (var rowIteration in rowIterator.IterateOverRows())
         {
-            await indexer.Index(rowIteration.Row, rowIteration.Offset, rowIteration.Length, cancellationToken);
+            indexer.Index(rowIteration.Row, rowIteration.Offset, rowIteration.Length);
             yield return new CommandIteration<Result>(null, operationName);
         }
     }

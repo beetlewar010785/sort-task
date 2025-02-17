@@ -12,10 +12,10 @@ namespace SortTask.Sorter;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class SortCommand : AsyncCommand<SortCommand.Settings>
 {
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
         const string usageMessage =
-            "Usage: dotnet SortTask.Sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file>";
+            "Usage: dotnet SortTask.Sorter -u <unsorted-input-file> -x <index-file> -s <sorted-output-file> -o <btree-order> -w <oph-words>";
 
         if (settings.ShowHelp)
         {
@@ -24,30 +24,35 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
             AnsiConsole.WriteLine("  -u, --unsorted-file  Path to the input unsorted file");
             AnsiConsole.WriteLine("  -x, --index-file     Path to the index file");
             AnsiConsole.WriteLine("  -s, --sorted-file    Path to the output sorted file");
+            AnsiConsole.WriteLine("  -o, --btree-order    BTree order");
+            AnsiConsole.WriteLine("  -w, --oph-words      Number of OPH words * 64 bit");
             AnsiConsole.WriteLine("  -h, --help           Show help message");
-            return 0;
+            return Task.FromResult(0);
         }
 
         if (string.IsNullOrEmpty(settings.UnsortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Input unsorted file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (string.IsNullOrEmpty(settings.IndexFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Index file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         if (string.IsNullOrEmpty(settings.SortedFilePath))
         {
             AnsiConsole.MarkupLine($"[red]Error:[/] Output sorted file path is required. {usageMessage}");
-            return 1;
+            return Task.FromResult(1);
         }
 
         AnsiConsole.MarkupLine($"[yellow]Unsorted file:[/] {settings.UnsortedFilePath.EscapeMarkup()}");
         AnsiConsole.MarkupLine($"[yellow]Sorted file: [/] {settings.SortedFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]Index file: [/] {settings.IndexFilePath.EscapeMarkup()}");
+        AnsiConsole.MarkupLine($"[yellow]OPH words: [/] {settings.OphWords}");
+        AnsiConsole.MarkupLine($"[yellow]BTree order: [/] {settings.BTreeOrder}");
 
         AnsiConsole.MarkupLine("[green]Start sorting.[/]");
 
@@ -69,52 +74,36 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
                 settings.UnsortedFilePath,
                 settings.IndexFilePath,
                 settings.SortedFilePath,
-                new BTreeOrder(AdapterConst.BTreeOrder),
-                new Oph(AdapterConst.NumIndexOphWords));
+                new BTreeOrder(settings.BTreeOrder),
+                new Oph(settings.OphWords));
 
-            foreach (var initializer in compositionRoot.Initializers) await initializer.Initialize(cts.Token);
-
-            await Execute(compositionRoot, cts.Token);
+            Execute(compositionRoot, cts.Token);
 
             AnsiConsole.MarkupLine(
                 $"[yellow]Index collisions: [/] {compositionRoot.CollisionDetector.CollisionCount}");
 
             AnsiConsole.MarkupLine(
                 $"[yellow]Index comparisons: [/] {compositionRoot.CollisionDetector.ComparisonCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Row lookup skip: [/] {compositionRoot.RowLookupCache.FindRowSkipCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Row lookup execute: [/] {compositionRoot.RowLookupCache.FindRowExecuteCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Get node skip: [/] {compositionRoot.BTreeStoreCache.GetNodeSkipCount}");
-
-            AnsiConsole.MarkupLine(
-                $"[yellow]Get node execute: [/] {compositionRoot.BTreeStoreCache.GetNodeExecuteCount}");
         }
         catch (OperationCanceledException)
         {
             AnsiConsole.MarkupLine("[red]Operation was cancelled.[/]");
-            return 1;
+            return Task.FromResult(1);
         }
 
         sw.Stop();
 
         AnsiConsole.MarkupLine($"[green]Operation completed successfully in {sw.Elapsed}.[/]");
 
-        return 0;
+        return Task.FromResult(0);
     }
 
-    private static async Task Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
+    private static void Execute<TOphValue>(CompositionRoot<TOphValue> compositionRoot, CancellationToken token)
         where TOphValue : struct
     {
-        _ = await compositionRoot.BuildIndexCommand.Execute(token)
-            .ToListAsync(token);
+        foreach (var _ in compositionRoot.BuildIndexCommand.Execute()) token.ThrowIfCancellationRequested();
 
-        _ = await compositionRoot.SortRowsCommand.Execute(token)
-            .ToListAsync(token);
+        foreach (var _ in compositionRoot.SortRowsCommand.Execute()) token.ThrowIfCancellationRequested();
     }
 
     // ReSharper disable once ClassNeverInstantiated.Global
@@ -132,6 +121,14 @@ public class SortCommand : AsyncCommand<SortCommand.Settings>
         [CommandOption("-s|--sorted-file")]
         [Description("Path to the output sorted file")]
         public string? SortedFilePath { get; set; }
+
+        [CommandOption("-o|--btree-order")]
+        [Description("BTree order")]
+        public int BTreeOrder { get; set; } = 16;
+
+        [CommandOption("-w|--oph-words")]
+        [Description("Number of OPH words * 64 bit")]
+        public int OphWords { get; set; } = 4;
 
         [CommandOption("-h|--help")]
         [Description("Show help message")]

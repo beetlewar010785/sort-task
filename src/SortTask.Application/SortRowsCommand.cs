@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using SortTask.Domain;
 using SortTask.Domain.BTree;
 
@@ -10,19 +9,18 @@ public class SortRowsCommand<TOphValue>(
     IRowWriter outputRowWriter
 ) : ICommand<SortRowsCommand<TOphValue>.Result> where TOphValue : struct
 {
-    public async IAsyncEnumerable<CommandIteration<Result>> Execute(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public IEnumerable<CommandIteration<Result>> Execute()
     {
         const string operationName = "Sorting...";
 
-        await foreach (var index in indexTraverser.IterateAsAsyncEnumerable(cancellationToken))
+        foreach (var index in indexTraverser.IterateOverIndex())
         {
-            var row = await rowLookup.FindRow(index.Offset, index.Length, cancellationToken);
-            await outputRowWriter.Write(row, cancellationToken);
+            var row = rowLookup.FindRow(index.Offset, index.Length);
+            outputRowWriter.Write(row);
             yield return new CommandIteration<Result>(null, operationName);
         }
 
-        await outputRowWriter.Flush(cancellationToken);
+        outputRowWriter.Flush();
     }
 
     public abstract record Result;

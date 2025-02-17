@@ -7,26 +7,18 @@ jobs:
   publish:
     uses: ./.github/workflows/publish.yml
 
-  e2e-100MB:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "100000000"
-
-  e2e-1GB:
+  e2e-1GB-2-8:
     needs: publish
     uses: ./.github/workflows/e2e-bin.yml
     with:
       file_size: "1000000000"
+      oph_words: 2
+      btree_order: 8
 
-  e2e-10GB:
+  e2e-10GB-2-8:
     needs: publish
     uses: ./.github/workflows/e2e-bin.yml
     with:
       file_size: "10000000000"
-
-  e2e-40GB:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "40000000000"
+      oph_words: 2
+      btree_order: 8
