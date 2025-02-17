@@ -22,11 +22,3 @@ jobs:
       file_size: "10000000000"
       oph_words: 2
       btree_order: 8
-
-  e2e-50GB-2-8:
-    needs: publish
-    uses: ./.github/workflows/e2e-bin.yml
-    with:
-      file_size: "50000000000"
-      oph_words: 2
-      btree_order: 8

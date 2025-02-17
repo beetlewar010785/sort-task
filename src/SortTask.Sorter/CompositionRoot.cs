@@ -64,6 +64,7 @@ public static class CompositionRootBuilder
         where T : struct
     {
         var encoding = AdapterConst.Encoding;
+
         var unsortedFile = File.OpenRead(unsortedFilePath);
         var sortedFile = File.Create(sortedFilePath);
         sortedFile.SetLength(unsortedFile.Length);
